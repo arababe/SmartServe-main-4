@@ -1,6 +1,15 @@
+// Import React hooks used for state, references, and side effects
 import { useState, useRef, useEffect } from "react";
+
+// Import routing tools from React Router
+// NavLink is used for sidebar links
+// useNavigate is used to redirect the user after logout
+
 import { NavLink, useNavigate } from "react-router-dom";
+// Used to show small popup messages/toasts
 import toast from "react-hot-toast";
+
+// Import icons used in the admin dashboard UI
 import {
   IoGridOutline,
   IoPersonAddOutline,
@@ -20,8 +29,13 @@ import {
   IoLeafOutline,
   IoGiftOutline as IoRewardIcon,
 } from "react-icons/io5";
+
+// Import authentication context
+// This gives access to the logged-in user and logout function
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+
+// Import SmartServe logo used in the sidebar
 import logo from "../assets/logo/logo.png";
 
 // ── Notification type config ──────────────────────────────────────────────────
@@ -33,25 +47,49 @@ const NOTIF_CONFIG = {
 };
 
 function timeAgo(dateStr) {
+
+  // Get the difference between current time and notification time
+  // Date.now() = current timestamp in milliseconds
+  // new Date(dateStr).getTime() = notification timestamp
   const diff = Date.now() - new Date(dateStr).getTime();
+  // Convert milliseconds into minutes
+  // 60000 ms = 1 minute
   const m = Math.floor(diff / 60000);
+  // If less than 1 minute ago
   if (m < 1) return "just now";
+    // If less than 60 minutes ago
+  // Example: 5m ago
   if (m < 60) return `${m}m ago`;
+  // Convert minutes into hours
   const h = Math.floor(m / 60);
+    // If less than 24 hours ago
+  // Example: 2h ago
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
 }
 
 // ── Notification Bell (uses context) ─────────────────────────────────────────
 function NotificationBell() {
+
+// Get notification data and functions from NotificationContext
+  // notifications = list of notifications
+  // unread = unread notification count
+  // markAllRead = function para gawing read lahat
+  // markOneRead = function para gawing read ang isang notification
+
   const { notifications, unread, markAllRead, markOneRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close on outside click
   useEffect(() => {
+      // Function that runs whenever user clicks anywhere on the page
     const handler = (e) => {
+  // Check if:
+    // 1. dropdownRef exists
+    // 2. the clicked element is NOT inside the dropdown
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+    // Close the notification dropdown    
         setOpen(false);
       }
     };
@@ -62,22 +100,36 @@ function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+            // Runs when user clicks the notification bell
         onClick={() => {
+          
           const opening = !open;
           setOpen(opening);
+            // If dropdown is opening
+            // AND there are unread notifications
           if (opening && unread > 0) markAllRead();
         }}
+        // Tailwind styling:
+        // relative = allows positioning of badge
+        // gray text color
+        // hover effect
+        // smooth transition animation
         className="relative text-gray-500 hover:text-gray-700 transition"
       >
+        // Notification bell icon
         <IoNotificationsOutline className="text-2xl" />
+
+        // If there are unread notifications, show a red badge with the count
         {unread > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold px-0.5">
+          // If unread count is greater than 99, show "99+" instead to avoid overflow
             {unread > 99 ? "99+" : unread}
           </span>
         )}
       </button>
 
       {open && (
+        // Notification dropdown styling:
         <div className="absolute right-0 top-10 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -105,6 +157,7 @@ function NotificationBell() {
                 return (
                   <li
                     key={n._id}
+                    // Calls function to mark all notifications as read
                     onClick={() => !n.read && markOneRead(n._id)}
                     className={`flex items-start gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition ${!n.read ? "bg-[#f0f7ec]" : ""}`}
                   >
@@ -127,6 +180,13 @@ function NotificationBell() {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────
+// Sidebar Navigation Items
+// Purpose:
+// Ito ang listahan ng menu items na makikita sa admin sidebar.
+// Each object represents one sidebar button/link.
+// ─────────────────────────────────────────────
 
 const navItems = [
   { label: "Dashboard", icon: <IoGridOutline />, to: "/dashboard" },
