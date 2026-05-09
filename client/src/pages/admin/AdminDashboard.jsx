@@ -27,15 +27,28 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────
+// ADMIN DASHBOARD COMPONENT
+// Main dashboard para sa admin users
+// Ipakita ang statistics, recent orders, at quick actions
+// ──────────────────────────────────────────────────────
+
+// ──────────────────────────────────────────────────────
+// HELPER FUNCTIONS
+// Utility functions para sa formatting at styling
+// ──────────────────────────────────────────────────────
+
+// Format time to 12-hour format (ex: "2:30 PM")
 const fmt = (date) => {
   if (!date) return "—";
   return new Date(date).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 };
 
+// Format number to Philippine peso (ex: "₱1,250.00")
 const peso = (n) =>
   "₱" + Number(n ?? 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Status styles para sa order status badges
 const STATUS_STYLES = {
   pending:   { label: "Pending",   cls: "bg-yellow-100 text-yellow-700" },
   preparing: { label: "Preparing", cls: "bg-blue-100 text-blue-700" },
@@ -44,56 +57,95 @@ const STATUS_STYLES = {
   cancelled: { label: "Cancelled", cls: "bg-red-100 text-red-500" },
 };
 
+// ──────────────────────────────────────────────────────
+// PERCENTAGE BADGE COMPONENT
+// Ipakita ang percentage change with arrow icon
+// ──────────────────────────────────────────────────────
 function PctBadge({ pct }) {
-  const up = pct >= 0;
+  const up = pct >= 0; // Positive or negative change
   return (
     <span className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${up ? "bg-[#e8f5e2] text-[#4a6741]" : "bg-red-100 text-red-600"}`}>
       {up ? <IoArrowUpOutline className="text-[10px]" /> : <IoArrowDownOutline className="text-[10px]" />}
-      {Math.abs(pct)}%
+      {Math.abs(pct)}% {/* Absolute value, arrow shows direction */}
     </span>
   );
 }
 
+// ──────────────────────────────────────────────────────
+// MAIN ADMIN DASHBOARD COMPONENT
+// ──────────────────────────────────────────────────────
 export default function AdminDashboard() {
+  // ──────────────────────────────────────────────────────
+  // HOOKS AT STATE MANAGEMENT
+  // ──────────────────────────────────────────────────────
+
+  // Get current logged-in user from AuthContext
   const { user } = useAuth();
+
+  // Navigation hook para sa page transitions
   const navigate = useNavigate();
 
+  // Dashboard data from API
   const [data, setData] = useState(null);
+
+  // Loading state habang nagfe-fetch ng data
   const [loading, setLoading] = useState(true);
+
+  // Timestamp ng last refresh
   const [lastRefreshed, setLastRefreshed] = useState(null);
 
+  // ──────────────────────────────────────────────────────
+  // CURRENT DATE DISPLAY
+  // Format today's date para sa welcome banner
+  // ──────────────────────────────────────────────────────
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long", month: "long", day: "numeric",
   });
 
+  // ──────────────────────────────────────────────────────
+  // LOAD DASHBOARD DATA FUNCTION
+  // Fetch statistics from backend API
+  // ──────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get("/dashboard/stats");
-      setData(res.data);
-      setLastRefreshed(new Date());
+      setData(res.data); // Store ang response data
+      setLastRefreshed(new Date()); // Update timestamp
     } catch {
-      // keep previous data on error
+      // Keep previous data if error occurs
     }
     setLoading(false);
   }, []);
 
+  // ──────────────────────────────────────────────────────
+  // LOAD DATA ON COMPONENT MOUNT
+  // Automatic na mag-load ng data pag open ng dashboard
+  // ──────────────────────────────────────────────────────
   useEffect(() => { load(); }, [load]);
 
+  // ──────────────────────────────────────────────────────
+  // EXTRACT STATS FROM DATA
+  // Short variable para sa statistics (s = stats)
+  // ──────────────────────────────────────────────────────
   const s = data?.stats ?? {};
 
+  // ──────────────────────────────────────────────────────
+  // STATISTICS CARDS CONFIGURATION
+  // Array ng stat cards na ipapakita sa dashboard
+  // ──────────────────────────────────────────────────────
   const statCards = [
     {
-      label: "Transactions Today",
-      value: loading ? "—" : s.transactionsToday ?? 0,
-      icon: <IoBagOutline className="text-[#4a6741] text-2xl" />,
-      iconBg: "bg-[#e8f5e2]",
-      pct: s.transactionsPct ?? 0,
-      note: "vs yesterday",
+      label: "Transactions Today", // Label ng card
+      value: loading ? "—" : s.transactionsToday ?? 0, // Value (or — if loading)
+      icon: <IoBagOutline className="text-[#4a6741] text-2xl" />, // Icon
+      iconBg: "bg-[#e8f5e2]", // Background color ng icon
+      pct: s.transactionsPct ?? 0, // Percentage change
+      note: "vs yesterday", // Note text
     },
     {
       label: "Revenue Today",
-      value: loading ? "—" : peso(s.revenueToday),
+      value: loading ? "—" : peso(s.revenueToday), // Format as peso
       icon: <IoCashOutline className="text-[#4a6741] text-2xl" />,
       iconBg: "bg-[#dff0d6]",
       pct: s.revenuePct ?? 0,
@@ -110,15 +162,15 @@ export default function AdminDashboard() {
     {
       label: "Active Orders",
       value: loading ? "—" : s.activeOrders ?? 0,
-      valueColor: (s.activeOrders ?? 0) > 0 ? "text-blue-600" : "text-gray-800",
+      valueColor: (s.activeOrders ?? 0) > 0 ? "text-blue-600" : "text-gray-800", // Dynamic color
       icon: <IoFlameOutline className={`text-2xl ${(s.activeOrders ?? 0) > 0 ? "text-blue-500" : "text-[#4a6741]"}`} />,
       iconBg: (s.activeOrders ?? 0) > 0 ? "bg-blue-50" : "bg-[#e8f5e2]",
-      sub: s.pendingOrders > 0 ? `${s.pendingOrders} pending` : "All clear",
+      sub: s.pendingOrders > 0 ? `${s.pendingOrders} pending` : "All clear", // Subtitle
       subColor: s.pendingOrders > 0 ? "text-yellow-600" : "text-gray-400",
     },
     {
       label: "Low Stock Items",
-      value: loading ? "—" : (s.lowStockCount ?? 0) + (s.outOfStockCount ?? 0),
+      value: loading ? "—" : (s.lowStockCount ?? 0) + (s.outOfStockCount ?? 0), // Combine low + out of stock
       valueColor: (s.lowStockCount ?? 0) + (s.outOfStockCount ?? 0) > 0 ? "text-red-600" : "text-gray-800",
       icon: <IoAlertOutline className={`text-2xl ${(s.lowStockCount ?? 0) + (s.outOfStockCount ?? 0) > 0 ? "text-red-500" : "text-[#4a6741]"}`} />,
       iconBg: (s.lowStockCount ?? 0) + (s.outOfStockCount ?? 0) > 0 ? "bg-red-50" : "bg-[#e8f5e2]",
@@ -135,6 +187,10 @@ export default function AdminDashboard() {
     },
   ];
 
+  // ──────────────────────────────────────────────────────
+  // QUICK ACTIONS CONFIGURATION
+  // Array ng quick action buttons sa sidebar
+  // ──────────────────────────────────────────────────────
   const quickActions = [
     { label: "Register Student", desc: "Add a new student account",   icon: <IoPersonAddOutline className="text-[#4a6741] text-2xl" />, to: "/dashboard/register-student" },
     { label: "Student Lookup",   desc: "Search student records",       icon: <IoSearchOutline className="text-[#4a6741] text-2xl" />,    to: "/dashboard/student-lookup", wip: true },
@@ -143,47 +199,56 @@ export default function AdminDashboard() {
     { label: "View Analytics",   desc: "Sales and trend reports",      icon: <IoBarChartOutline className="text-[#4a6741] text-2xl" />,  to: "/dashboard/analytics", wip: true },
   ];
 
+  // ──────────────────────────────────────────────────────
+  // MAIN DASHBOARD UI
+  // ──────────────────────────────────────────────────────
   return (
     <AdminLayout breadcrumb="Dashboard">
       <div className="space-y-6 max-w-[1200px]">
 
-        {/* Welcome Banner */}
+        {/* ────────────────────────────────────────────────────── */}
+        {/* WELCOME BANNER */}
+        {/* Header section with date, refresh button, and action buttons */}
+        {/* ────────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden bg-[#4a6741] rounded-2xl px-6 py-6 text-white">
           <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/5" />
           <div className="absolute right-24 bottom-[-30px] w-28 h-28 rounded-full bg-white/5" />
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
+              {/* Date badge and refresh button */}
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="flex items-center gap-1.5 bg-white/15 text-white/90 text-xs font-medium px-3 py-1 rounded-full">
                   <IoCalendarOutline className="text-sm" />
-                  {today}
+                  {today} {/* Current date display */}
                 </span>
                 <button
-                  onClick={load}
-                  disabled={loading}
+                  onClick={load} // Refresh dashboard data
+                  disabled={loading} // Disable habang loading
                   className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white/90 text-xs font-medium px-3 py-1 rounded-full transition disabled:opacity-60"
                 >
                   <IoRefreshOutline className={`text-sm ${loading ? "animate-spin" : ""}`} />
-                  {lastRefreshed ? `Updated ${fmt(lastRefreshed)}` : "Refresh"}
+                  {lastRefreshed ? `Updated ${fmt(lastRefreshed)}` : "Refresh"} {/* Show last update time */}
                 </button>
               </div>
+              {/* Welcome message with admin name */}
               <h1 className="text-2xl sm:text-3xl font-bold leading-tight">
-                Welcome back, {user?.fullName?.split(" ")[0] ?? "Admin"}
+                Welcome back, {user?.fullName?.split(" ")[0] ?? "Admin"} {/* First name only */}
               </h1>
               <p className="text-white/70 text-sm mt-1">
                 Here's what's happening in your cafeteria today.
               </p>
             </div>
+            {/* Action buttons: Live Orders and Analytics */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
-                onClick={() => navigate("/dashboard/orders")}
+                onClick={() => navigate("/dashboard/orders")} // Go to orders page
                 className="flex items-center gap-2 bg-white/15 hover:bg-white/25 transition text-white text-sm font-semibold px-4 py-2.5 rounded-xl border border-white/20"
               >
                 <IoFlameOutline className="text-base" />
                 Live Orders
               </button>
               <button
-                onClick={() => toast("Not yet implemented", { icon: "🚧" })}
+                onClick={() => toast("Not yet implemented", { icon: "🚧" })} // WIP feature
                 className="flex items-center gap-2 bg-white hover:bg-gray-100 transition text-[#4a6741] text-sm font-semibold px-4 py-2.5 rounded-xl shadow-sm"
               >
                 Analytics
@@ -193,26 +258,34 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Stat Cards */}
+        {/* ────────────────────────────────────────────────────── */}
+        {/* STATISTICS CARDS GRID */}
+        {/* Ipakita ang key metrics sa card format */}
+        {/* ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {statCards.map((card) => (
             <div key={card.label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col gap-3">
+              {/* Card header: label and icon */}
               <div className="flex items-start justify-between">
                 <p className="text-sm text-gray-500 font-medium leading-snug">{card.label}</p>
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${card.iconBg}`}>
                   {card.icon}
                 </div>
               </div>
+              {/* Main value display */}
               <p className={`text-3xl font-bold tracking-tight ${card.valueColor ?? "text-gray-800"}`}>
                 {card.value}
               </p>
+              {/* Percentage change or subtitle */}
               <div className="flex items-center gap-2 text-xs">
                 {card.pct !== undefined ? (
+                  // Show percentage badge with note
                   <>
                     <PctBadge pct={card.pct} />
                     <span className="text-gray-400">{card.note}</span>
                   </>
                 ) : (
+                  // Show subtitle text
                   <span className={`text-xs font-medium ${card.subColor}`}>{card.sub}</span>
                 )}
               </div>
@@ -220,7 +293,10 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Low Stock Alert Banner */}
+        {/* ────────────────────────────────────────────────────── */}
+        {/* LOW STOCK ALERT BANNER */}
+        {/* Warning banner kapag may low stock items */}
+        {/* ────────────────────────────────────────────────────── */}
         {(data?.lowStockItems?.length > 0) && (
           <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4">
             <div className="flex items-center justify-between gap-4 mb-3">
@@ -233,6 +309,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-500">{s.lowStockCount} low · {s.outOfStockCount} out of stock</p>
                 </div>
               </div>
+              {/* Button to manage inventory */}
               <button
                 onClick={() => navigate("/dashboard/inventory")}
                 className="flex-shrink-0 flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition"
@@ -240,6 +317,7 @@ export default function AdminDashboard() {
                 Manage <IoArrowForwardOutline className="text-sm" />
               </button>
             </div>
+            {/* List of low stock items */}
             <div className="flex flex-wrap gap-2">
               {data.lowStockItems.map((item) => (
                 <span key={item._id} className={`text-xs font-semibold px-3 py-1 rounded-full ${item.quantity === 0 ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>
@@ -250,10 +328,16 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Bottom Grid: Recent Orders + Quick Actions */}
+        {/* ────────────────────────────────────────────────────── */}
+        {/* BOTTOM GRID: RECENT ORDERS + QUICK ACTIONS */}
+        {/* Two-column layout sa bottom */}
+        {/* ────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
 
-          {/* Recent Orders */}
+          {/* ────────────────────────────────────────────────────── */}
+          {/* RECENT ORDERS TABLE */}
+          {/* Table ng recent orders sa left column */}
+          {/* ────────────────────────────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-bold text-[#4a6741]">Recent Orders</h2>
@@ -266,12 +350,15 @@ export default function AdminDashboard() {
             </div>
 
             {loading ? (
+              // Loading spinner habang nagfe-fetch
               <div className="flex justify-center py-10">
                 <div className="w-7 h-7 border-4 border-[#4a6741] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : !data?.recentOrders?.length ? (
+              // Empty state kapag walang orders
               <div className="text-center py-10 text-gray-400 text-sm">No orders yet today.</div>
             ) : (
+              // Orders table
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100 text-left">
@@ -307,10 +394,15 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Right Column: Quick Actions + Recent Redemptions */}
+          {/* ────────────────────────────────────────────────────── */}
+          {/* RIGHT COLUMN: QUICK ACTIONS + RECENT REDEMPTIONS */}
+          {/* ────────────────────────────────────────────────────── */}
           <div className="flex flex-col gap-6">
 
-            {/* Quick Actions */}
+            {/* ────────────────────────────────────────────────────── */}
+            {/* QUICK ACTIONS PANEL */}
+            {/* Shortcut buttons para sa common admin tasks */}
+            {/* ────────────────────────────────────────────────────── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100">
                 <h2 className="text-base font-bold text-[#4a6741]">Quick Actions</h2>
@@ -335,7 +427,10 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Redemptions */}
+            {/* ────────────────────────────────────────────────────── */}
+            {/* RECENT REDEMPTIONS PANEL */}
+            {/* List ng recent reward redemptions */}
+            {/* ────────────────────────────────────────────────────── */}
             {data?.recentRedemptions?.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">

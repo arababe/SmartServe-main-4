@@ -1,3 +1,4 @@
+// Hooks: manage state, side effects, memoize functions, store DOM references
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   IoCubeOutline,
@@ -14,6 +15,7 @@ import AdminLayout from "../../components/AdminLayout";
 import api from "../../utils/api";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
+// Status lookup with styling. Why: Consistent UI for each stock state
 const STATUS = {
   in_stock: {
     label: "In Stock",
@@ -32,13 +34,14 @@ const STATUS = {
   },
 };
 
+// Determine stock status from quantity. Why: Reusable logic for filter & display
 const deriveStatus = (quantity, minThreshold) => {
   if (quantity <= 0) return "out_of_stock";
   if (quantity <= minThreshold) return "low_stock";
   return "in_stock";
 };
 
-// ─── Field ────────────────────────────────────────────────────────────────────
+// Reusable form field wrapper with label & error. Why: Reduce duplication
 const Field = ({ label, required, error, children }) => (
   <div>
     <label className="block text-xs font-semibold text-gray-600 mb-1.5">
@@ -50,6 +53,7 @@ const Field = ({ label, required, error, children }) => (
   </div>
 );
 
+// Reusable input with error styling. Why: Consistent form styling
 const Input = ({ error, className = "", ...props }) => (
   <input
     {...props}
@@ -61,41 +65,45 @@ const Input = ({ error, className = "", ...props }) => (
   />
 );
 
+// Dropdown options. Why: Single source for allowed values
 const CATEGORIES = ["Protein", "Vegetables", "Grains", "Dairy", "Beverages", "Condiments", "Snacks", "Others"];
 const UNITS = ["kg", "g", "pcs", "L", "mL", "box", "pack", "dozen"];
 
+// Form reset template. Why: Clear form on close/success
 const emptyForm = { name: "", category: "", quantity: "", unit: "kg", minThreshold: "", price: "" };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Inventory() {
+  // Main data states. Why: Display items & stats on page
   const [items, setItems] = useState([]);
   const [summary, setSummary] = useState({ total: 0, inStock: 0, lowStock: 0, outOfStock: 0 });
   const [loading, setLoading] = useState(true);
+  // Filter & search states. Why: Control what data to fetch
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
-  // Inline quantity edit
+  // Inline quantity edit state. Why: Edit qty in table without modal
   const [editingQtyId, setEditingQtyId] = useState(null);
   const [qtyDraft, setQtyDraft] = useState("");
-  const qtyInputRef = useRef(null);
+  const qtyInputRef = useRef(null); // Access input for auto-select
 
-  // Add / Edit modal
+  // Modal & form states. Why: Control add/edit form UI & validation
   const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState(null); // null = add, object = edit
-  const [form, setForm] = useState(emptyForm);
-  const [formErrors, setFormErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [apiError, setApiError] = useState("");
+  const [editTarget, setEditTarget] = useState(null); // null = add mode, object = edit mode
+  const [form, setForm] = useState(emptyForm); // Form field values
+  const [formErrors, setFormErrors] = useState({}); // Validation error map
+  const [submitting, setSubmitting] = useState(false); // Disable submit during API call
+  const [apiError, setApiError] = useState(""); // API error message
 
-  // Delete confirm
+  // Delete confirmation state. Why: Confirm before permanent deletion
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  // ── Fetch ──
+  // Fetch inventory with filters. Why: Get paginated, filtered data from backend
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const params = { search };
+      const params = { search }; // Build query based on filters
       if (activeFilter !== "all") params.status = activeFilter;
       const { data } = await api.get("/inventory", { params });
       setItems(data.items);
@@ -107,26 +115,28 @@ export default function Inventory() {
     }
   }, [search, activeFilter]);
 
+  // Auto-fetch with debounce. Why: Prevent API spam on every keystroke
   useEffect(() => {
-    const t = setTimeout(fetchItems, search ? 400 : 0);
-    return () => clearTimeout(t);
+    const t = setTimeout(fetchItems, search ? 400 : 0); // 400ms delay for search
+    return () => clearTimeout(t); // Cleanup timer
   }, [fetchItems]);
 
-  // ── Inline qty ──
+  // Start inline edit. Why: Quick edit without modal
   const startEditQty = (item) => {
     setEditingQtyId(item._id);
     setQtyDraft(String(item.quantity));
-    setTimeout(() => qtyInputRef.current?.select(), 50);
+    setTimeout(() => qtyInputRef.current?.select(), 50); // Auto-select for quick typing
   };
 
+  // Save qty change. Why: Persist to backend & update UI
   const commitQty = async (item) => {
     const val = parseFloat(qtyDraft);
-    if (isNaN(val) || val < 0) { setEditingQtyId(null); return; }
-    if (val === item.quantity) { setEditingQtyId(null); return; }
+    if (isNaN(val) || val < 0) { setEditingQtyId(null); return; } // Validate input
+    if (val === item.quantity) { setEditingQtyId(null); return; } // Skip if unchanged
     try {
       const { data } = await api.patch(`/inventory/${item._id}/quantity`, { quantity: val });
-      setItems((prev) => prev.map((i) => (i._id === data._id ? data : i)));
-      // Refresh summary
+      setItems((prev) => prev.map((i) => (i._id === data._id ? data : i))); // Optimistic update
+      // Refresh summary stats
       fetchItems();
     } catch {
       // silently revert
@@ -135,17 +145,19 @@ export default function Inventory() {
     }
   };
 
-  // ── Modal ──
+  // Open add modal. Why: Reset form for clean add state
   const openAdd = () => {
-    setEditTarget(null);
-    setForm(emptyForm);
-    setFormErrors({});
+    setEditTarget(null); // null = add mode
+    setForm(emptyForm); // Clear fields
+    setFormErrors({}); // Clear errors
     setApiError("");
     setModalOpen(true);
   };
 
+  // Open edit modal. Why: Pre-populate form with item data
   const openEdit = (item) => {
     setEditTarget(item);
+    // Load item data into form (convert numbers to strings)
     setForm({
       name: item.name,
       category: item.category,
@@ -159,20 +171,23 @@ export default function Inventory() {
     setModalOpen(true);
   };
 
+  // Close modal & reset. Why: Clean state when user cancels/saves
   const closeModal = () => {
     setModalOpen(false);
     setEditTarget(null);
-    setForm(emptyForm);
+    setForm(emptyForm); // Reset form
     setFormErrors({});
     setApiError("");
   };
 
+  // Update form & clear error. Why: Live state + error clearing as user types
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
-    if (formErrors[name]) setFormErrors((p) => ({ ...p, [name]: "" }));
+    if (formErrors[name]) setFormErrors((p) => ({ ...p, [name]: "" })); // Clear error on change
   };
 
+  // Validate all fields. Why: Prevent invalid data before API
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
@@ -181,16 +196,18 @@ export default function Inventory() {
     if (!form.unit.trim()) e.unit = "Required";
     if (form.minThreshold === "" || isNaN(Number(form.minThreshold)) || Number(form.minThreshold) < 0) e.minThreshold = "Valid number ≥ 0";
     if (form.price === "" || isNaN(Number(form.price)) || Number(form.price) < 0) e.price = "Valid number ≥ 0";
-    return e;
+    return e; // Empty object = no errors
   };
 
+  // Submit form. Why: Validate then send to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError("");
-    const errs = validate();
-    if (Object.keys(errs).length) { setFormErrors(errs); return; }
-    setSubmitting(true);
+    const errs = validate(); // Check all fields
+    if (Object.keys(errs).length) { setFormErrors(errs); return; } // Show errors & exit
+    setSubmitting(true); // Lock button
     try {
+      // Prepare payload (trim strings, convert to numbers)
       const payload = {
         name: form.name.trim(),
         category: form.category.trim(),
@@ -199,28 +216,29 @@ export default function Inventory() {
         minThreshold: Number(form.minThreshold),
         price: Number(form.price),
       };
+      // Choose add or edit endpoint
       if (editTarget) {
         await api.put(`/inventory/${editTarget._id}`, payload);
       } else {
         await api.post("/inventory", payload);
       }
       closeModal();
-      fetchItems();
+      fetchItems(); // Refresh list
     } catch (err) {
       setApiError(err.response?.data?.message || "Failed to save item.");
     } finally {
-      setSubmitting(false);
+      setSubmitting(false); // Unlock button
     }
   };
 
-  // ── Delete ──
+  // Execute deletion. Why: Confirmation shown, now remove permanently
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await api.delete(`/inventory/${deleteTarget._id}`);
-      setDeleteTarget(null);
-      fetchItems();
+      await api.delete(`/inventory/${deleteTarget._id}`); // Send delete request
+      setDeleteTarget(null); // Close modal
+      fetchItems(); // Refresh list
     } catch {
       setDeleteTarget(null);
     } finally {
@@ -228,6 +246,7 @@ export default function Inventory() {
     }
   };
 
+  // Status filter options. Why: Let users view specific stock levels
   const filters = [
     { key: "all", label: "All Items" },
     { key: "in_stock", label: "In Stock" },

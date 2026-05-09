@@ -1,3 +1,4 @@
+// Hooks: manage state, side effects, memoize callbacks, store DOM references
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   IoReceiptOutline,
@@ -16,7 +17,7 @@ import {
 import AdminLayout from "../../components/AdminLayout";
 import api from "../../utils/api";
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// Status configuration. Why: Consistent styling & labels across all status states
 const STATUS_CFG = {
   pending: {
     label: "Pending",
@@ -65,6 +66,7 @@ const STATUS_CFG = {
   },
 };
 
+// Filter options. Why: Let users view orders by status
 const FILTER_TABS = [
   { key: "all", label: "All" },
   { key: "pending", label: "Pending" },
@@ -74,20 +76,23 @@ const FILTER_TABS = [
   { key: "cancelled", label: "Cancelled" },
 ];
 
+// Order workflow steps. Why: Define allowed status transitions
 const STATUS_SEQUENCE = ["pending", "preparing", "ready", "completed"];
 
+// Format time to HH:MM:SS. Why: Readable order timestamps
 function formatTime(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 }
 
+// Format date to MMM D, YYYY. Why: Readable order dates
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString("en-PH", {
     month: "short", day: "numeric", year: "numeric",
   });
 }
 
-// ─── Order Detail Modal ───────────────────────────────────────────────────────
+// Modal to show order details & update status. Why: Dedicated view for order management
 function OrderModal({ order, onClose, onStatusChange, updating }) {
   const cfg = STATUS_CFG[order.status] || STATUS_CFG.pending;
 
@@ -210,17 +215,19 @@ function OrderModal({ order, onClose, onStatusChange, updating }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// Main orders dashboard. Why: Display & manage all food orders
 export default function Orders() {
+  // Main data states. Why: Display orders & manage UI states
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
-  const searchTimeout = useRef(null);
+  // Filter & search states. Why: Control what data to fetch
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const searchTimeout = useRef(null); // Debounce search requests
 
-  // ── Derived stats ──────────────────────────────────────────────────────────
+  // Calculate order counts by status. Why: Display summary cards
   const stats = {
     total: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
@@ -245,21 +252,23 @@ export default function Orders() {
     }
   }, []);
 
+  // Load on mount. Why: Fetch initial orders
   useEffect(() => { fetchOrders("", "all"); }, []);
 
-  // Debounced search
+  // Search with debounce. Why: Prevent API spam on every keystroke
   function handleSearchChange(val) {
     setSearch(val);
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => fetchOrders(val, activeFilter), 350);
+    searchTimeout.current = setTimeout(() => fetchOrders(val, activeFilter), 350); // 350ms debounce
   }
 
+  // Update filter & fetch. Why: Refresh data on status filter change
   function handleFilterChange(key) {
     setActiveFilter(key);
     fetchOrders(search, key);
   }
 
-  // ── Status update ──────────────────────────────────────────────────────────
+  // Update order status. Why: Transition order through workflow (pending → preparing → ready → completed)
   async function handleStatusChange(orderId, newStatus) {
     setUpdating(true);
     try {
@@ -274,7 +283,7 @@ export default function Orders() {
     }
   }
 
-  // ── Filtered view ──────────────────────────────────────────────────────────
+  // Filtered orders list. Why: Display based on current filter
   const visible = orders;
 
   return (
