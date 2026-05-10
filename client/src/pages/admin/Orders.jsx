@@ -290,7 +290,7 @@ export default function Orders() {
     <AdminLayout breadcrumb="Orders">
       <div className="p-6 space-y-6">
 
-        {/* ── Page header ── */}
+        {/* Page header with title & refresh button */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-extrabold text-[#4a6741]">Order Management</h1>
@@ -305,7 +305,7 @@ export default function Orders() {
           </button>
         </div>
 
-        {/* ── Stat Cards ── */}
+        {/* Summary cards showing order counts by status */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Total */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 lg:col-span-1">
@@ -334,9 +334,9 @@ export default function Orders() {
           </div>
         </div>
 
-        {/* ── Filters + Search ── */}
+        {/* Search bar with debounced input */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-          {/* Search */}
+          {/* Search input with debounce */}
           <div className="relative w-full sm:max-w-sm">
             <IoSearchOutline className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
             <input
@@ -346,11 +346,11 @@ export default function Orders() {
               onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
-          {/* Filter */}
+          {/* Filter icon */}
           <IoFilterOutline className="text-gray-400 text-lg hidden sm:block flex-shrink-0" />
         </div>
 
-        {/* ── Filter Tabs ── */}
+        {/* Status filter tabs. Why: Quick filtering by status */}
         <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
           {FILTER_TABS.map((tab) => (
             <button
@@ -373,16 +373,16 @@ export default function Orders() {
           ))}
         </div>
 
-        {/* ── Table ── */}
+        {/* Orders table with columns for order info, status, and actions */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* Table header */}
+          {/* Table header row */}
           <div className="grid grid-cols-[120px_1fr_80px_90px_120px_100px_56px] gap-x-4 px-6 py-3 bg-[#f8faf8] border-b border-gray-100">
             {["Order ID", "Student", "Items", "Total", "Status", "Time", ""].map((h) => (
               <p key={h} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</p>
             ))}
           </div>
 
-          {/* Rows */}
+          {/* Table rows with loading & empty states */}
           {loading ? (
             <div className="flex justify-center py-16">
               <div className="w-8 h-8 border-4 border-[#4a6741] border-t-transparent rounded-full animate-spin" />
@@ -400,7 +400,7 @@ export default function Orders() {
                 return (
                   <div
                     key={order._id}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => setSelectedOrder(order)} // Open detail modal for this order
                     className="grid grid-cols-[120px_1fr_80px_90px_120px_100px_56px] gap-x-4 px-6 py-4 hover:bg-[#f8faf8] cursor-pointer transition items-center group"
                   >
                     {/* Order ID */}
@@ -443,7 +443,7 @@ export default function Orders() {
           )}
         </div>
 
-        {/* Row count */}
+        {/* Show count of displayed orders */}
         {!loading && visible.length > 0 && (
           <p className="text-xs text-gray-400 text-right">
             Showing {visible.length} order{visible.length !== 1 ? "s" : ""}
@@ -451,7 +451,7 @@ export default function Orders() {
         )}
       </div>
 
-      {/* ── Order Detail Modal ── */}
+      {/* Render order detail modal when order is selected */}
       {selectedOrder && (
         <OrderModal
           order={selectedOrder}
