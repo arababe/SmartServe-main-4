@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+//This imports the MongoDB/Mongoose model for orders. It lets the backend do:
 const logAudit = require("../utils/auditLogger");
 const { pushNotification } = require("./notificationController");
 
