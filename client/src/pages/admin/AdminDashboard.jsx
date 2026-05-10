@@ -152,10 +152,53 @@ export default function AdminDashboard() {
       note: "vs yesterday",
     },
     {
+
+// Dashboard statistic card
+// Purpose:
+// Displays information for "Items Sold"
+//
+// Usually used inside dashboard cards/widgets
+  // Title shown on the dashboard card
       label: "Items Sold",
+
+  // Value displayed on the card
+  //
+  // Ternary operator:
+  //
+  // If loading is true:
+  // show "—"
+  //
+  // Otherwise:
+  // show today's sold items
+  //
+  // ?? 0
+  // means:
+  // if value is null or undefined,
+  // use 0 instead
+
       value: loading ? "—" : s.itemsSoldToday ?? 0,
+
+  // Icon displayed on the card
+  //
+  // IoTrendingUpOutline
+  // = trending upward icon
+  //
+  // Tailwind classes:
+  // text-[#4a6741] = green color
+  // text-2xl = icon size
+
       icon: <IoTrendingUpOutline className="text-[#4a6741] text-2xl" />,
       iconBg: "bg-[#e8f5e2]",
+
+    // Percentage comparison value
+  //
+  // Example:
+  // +15%
+  // -5%
+  //
+  // ?? 0 means:
+  // if value is missing,
+  // default to 0
       pct: s.itemsSoldPct ?? 0,
       note: "vs yesterday",
     },
@@ -192,6 +235,7 @@ export default function AdminDashboard() {
   // Array ng quick action buttons sa sidebar
   // ──────────────────────────────────────────────────────
   const quickActions = [
+    //hindi talaga yan folder path kasi react router path
     { label: "Register Student", desc: "Add a new student account",   icon: <IoPersonAddOutline className="text-[#4a6741] text-2xl" />, to: "/dashboard/register-student" },
     { label: "Student Lookup",   desc: "Search student records",       icon: <IoSearchOutline className="text-[#4a6741] text-2xl" />,    to: "/dashboard/student-lookup", wip: true },
     { label: "Add Inventory",    desc: "Update stock levels",          icon: <IoCubeOutline className="text-[#4a6741] text-2xl" />,      to: "/dashboard/inventory" },

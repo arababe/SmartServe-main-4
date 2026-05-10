@@ -1,3 +1,9 @@
+// ─────────────────────────────
+// Imports
+// Purpose: Bring in necessary tools and components from libraries and other files.
+// React hooks are special functions that help manage component behavior.
+// ─────────────────────────────
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   IoGiftOutline,
@@ -21,30 +27,50 @@ import {
 import AdminLayout from "../../components/AdminLayout";
 import api from "../../utils/api";
 
-// ─── Shared helpers ───────────────────────────────────────────────────────────
+// ─────────────────────────────
+// Shared Helpers
+// Purpose: Define constants and helper functions used across multiple components in this file.
+// These are like reusable pieces of code that make the app consistent.
+// ─────────────────────────────
+
+// ICON_MAP: A dictionary that maps icon names to React icon components.
+// Used to display different icons for rewards based on their type.
+// Example: ICON_MAP['gift'] returns the IoGiftOutline icon component.
 const ICON_MAP = {
   gift: <IoGiftOutline />,
   star: <IoStarOutline />,
   leaf: <IoLeafOutline />,
 };
 
+// TYPE_LABEL: A dictionary that maps reward types to human-readable labels.
+// Used to show user-friendly names for different reward categories.
+// Example: TYPE_LABEL['free_item'] returns "Free Item".
 const TYPE_LABEL = {
   free_item: "Free Item",
   discount: "Discount",
   eco_badge: "Eco Badge",
 };
 
+// TYPE_BADGE: A dictionary that maps reward types to Tailwind CSS classes for styling badges.
+// Used to apply consistent colors and styles to reward type badges.
+// Example: TYPE_BADGE['free_item'] returns "bg-[#d7ecc8] text-[#4a6741]".
 const TYPE_BADGE = {
   free_item: "bg-[#d7ecc8] text-[#4a6741]",
   discount: "bg-yellow-100 text-yellow-700",
   eco_badge: "bg-teal-100 text-teal-700",
 };
 
+// fmt: A helper function to format dates into a readable string.
+// Used to display timestamps in a user-friendly format.
+// Example: fmt(new Date()) might return "2023-05-10 14:30".
 const fmt = (date) => {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
+// TABS: An array of objects defining the tabs in the rewards page.
+// Used to render the tab navigation and switch between different sections.
+// Each tab has a key (for identification), label (display text), and icon (React component).
 const TABS = [
   { key: "redeem", label: "Redeem Rewards", icon: <IoGiftOutline /> },
   { key: "configure", label: "Configure Rewards", icon: <IoStarOutline /> },
@@ -53,6 +79,10 @@ const TABS = [
 ];
 
 // ─── Points Config Section ────────────────────────────────────────────────────
+
+// CONFIG_FIELDS: An array of objects defining the configuration fields for points.
+// Used to dynamically render input fields for points configuration.
+// Each field has a key (for state), label (display text), hint (helper text), step (input step), and min (minimum value).
 const CONFIG_FIELDS = [
   {
     key: "pointsPerPeso",
@@ -77,13 +107,35 @@ const CONFIG_FIELDS = [
   },
 ];
 
+// PointsConfigSection: A React component for configuring points settings.
+// Purpose: Allows admins to set how points are earned and redeemed.
+// Used in the Configure tab to manage global points configuration.
+// Runs when the Configure tab is active.
 function PointsConfigSection() {
+  // useState: A React hook to store and update component state.
+  // form: Stores the current values of the configuration fields.
+  // Used to track user input before saving.
   const [form, setForm] = useState({ pointsPerPeso: "0.1", ecoPointsPerByoc: "5", minRedemptionPoints: "30" });
+
+  // loading: Tracks if the component is loading data from the server.
+  // Used to show a loading spinner while fetching initial data.
   const [loading, setLoading] = useState(true);
+
+  // saving: Tracks if the component is saving data to the server.
+  // Used to disable the save button and show saving text during save.
   const [saving, setSaving] = useState(false);
+
+  // saved: Tracks if the save was successful.
+  // Used to show a "Saved!" message temporarily after saving.
   const [saved, setSaved] = useState(false);
+
+  // error: Stores any error message from saving.
+  // Used to display error alerts to the user.
   const [error, setError] = useState("");
 
+  // useEffect: A React hook that runs side effects after rendering.
+  // Purpose: Fetch initial points configuration from the server when the component mounts.
+  // Runs once when the component first loads.
   useEffect(() => {
     api.get("/points-config")
       .then((res) => {
@@ -98,12 +150,18 @@ function PointsConfigSection() {
       .finally(() => setLoading(false));
   }, []);
 
+  // handleChange: A function to update the form state when user types in inputs.
+  // Purpose: Keeps the form state in sync with user input.
+  // Runs when the user changes any input field.
   const handleChange = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
     setSaved(false);
     setError("");
   };
 
+  // handleSave: An async function to save the configuration to the server.
+  // Purpose: Sends the updated configuration to the backend and updates the UI.
+  // Runs when the user clicks the Save button.
   const handleSave = async () => {
     setSaving(true); setError(""); setSaved(false);
     try {
@@ -128,6 +186,9 @@ function PointsConfigSection() {
     }
   };
 
+  // return: The JSX that defines what the component renders on the screen.
+  // Purpose: Displays the points configuration form with inputs, buttons, and messages.
+  // Runs every time the component re-renders (when state changes).
   return (
     <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 mb-7">
       <div className="flex items-center justify-between mb-6">
@@ -138,12 +199,16 @@ function PointsConfigSection() {
         <IoSettingsOutline className="text-2xl text-gray-300" />
       </div>
 
+      {/* Conditional rendering: Shows loading spinner if data is being fetched. */}
+      {/* Checks if loading is true, and if so, displays the loading message. */}
       {loading ? (
         <div className="flex items-center gap-2 text-gray-400 text-sm py-4">
           <IoRefreshOutline className="animate-spin" /> Loading configuration…
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Map over CONFIG_FIELDS to render input fields dynamically. */}
+          {/* For each field, create a label, input, and hint. */}
           {CONFIG_FIELDS.map((f) => (
             <div key={f.key}>
               <label className="block text-sm font-semibold text-gray-700 mb-2">{f.label}</label>
@@ -161,6 +226,8 @@ function PointsConfigSection() {
         </div>
       )}
 
+      {/* Conditional rendering: Shows error message if there's an error. */}
+      {/* Checks if error is not empty, and if so, displays the error alert. */}
       {error && (
         <div className="mt-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
           <IoAlertCircleOutline className="text-base flex-shrink-0" />
@@ -168,6 +235,7 @@ function PointsConfigSection() {
         </div>
       )}
 
+      {/* Conditional rendering: Shows the save section only if not loading. */}
       {!loading && (
         <div className="flex items-center justify-between mt-6 pt-5 border-t border-gray-100">
           <p className="text-xs text-gray-400">Changes apply to all new orders and BYOC logs immediately.</p>
@@ -190,22 +258,71 @@ function PointsConfigSection() {
 }
 
 // ─── Tab: Configure ───────────────────────────────────────────────────────────
+
+// emptyRewardForm: An object with default empty values for a new reward form.
+// Used to reset the form when adding a new reward or clearing it.
+// Example: Used in openAdd to initialize the form state.
 const emptyRewardForm = { name: "", description: "", type: "free_item", pointsCost: "", icon: "gift" };
 
+// ConfigureTab: A React component for the Configure Rewards tab.
+// Purpose: Allows admins to view, add, edit, and manage rewards.
+// Used in the main Rewards component when the "configure" tab is active.
+// Runs when the user switches to the Configure tab.
 function ConfigureTab() {
+  // useState hooks: Store various pieces of state for the component.
+
+  // rewards: Stores the list of rewards fetched from the server.
+  // Used to display the rewards in a grid.
   const [rewards, setRewards] = useState([]);
+
+  // total: Stores the total number of rewards.
+  // Used to display stats in the sub-header.
   const [total, setTotal] = useState(0);
+
+  // active: Stores the number of active rewards.
+  // Used to display stats in the sub-header.
   const [active, setActive] = useState(0);
+
+  // loading: Tracks if rewards are being fetched.
+  // Used to show a loading spinner.
   const [loading, setLoading] = useState(true);
+
+  // modalOpen: Tracks if the add/edit modal is open.
+  // Used to show or hide the modal overlay.
   const [modalOpen, setModalOpen] = useState(false);
+
+  // editTarget: Stores the reward being edited, or null for adding new.
+  // Used to determine if we're adding or editing.
   const [editTarget, setEditTarget] = useState(null);
+
+  // form: Stores the current form values for the reward being added/edited.
+  // Used to track user input in the modal.
   const [form, setForm] = useState(emptyRewardForm);
+
+  // formErrors: Stores validation errors for the form.
+  // Used to display error messages under inputs.
   const [formErrors, setFormErrors] = useState({});
+
+  // submitting: Tracks if the form is being submitted.
+  // Used to disable the submit button and show loading text.
   const [submitting, setSubmitting] = useState(false);
+
+  // apiError: Stores any error from API calls.
+  // Used to display error messages in the modal.
   const [apiError, setApiError] = useState("");
+
+  // deleteTarget: Stores the reward to be deleted, or null.
+  // Used to show the delete confirmation modal.
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // deleting: Tracks if a deletion is in progress.
+  // Used to disable the delete button and show loading.
   const [deleting, setDeleting] = useState(false);
 
+  // fetchRewards: A memoized function to fetch rewards from the server.
+  // useCallback: Ensures the function is not recreated on every render, optimizing performance.
+  // Purpose: Gets the latest rewards data and updates state.
+  // Runs when called, e.g., after adding/editing/deleting a reward.
   const fetchRewards = useCallback(async () => {
     setLoading(true);
     try {
@@ -216,18 +333,35 @@ function ConfigureTab() {
     } catch { /* empty */ } finally { setLoading(false); }
   }, []);
 
+  // useEffect: Runs fetchRewards when the component mounts.
+  // Purpose: Load initial rewards data.
+  // Runs once when the component first loads.
   useEffect(() => { fetchRewards(); }, [fetchRewards]);
 
+  // openAdd: Function to open the modal for adding a new reward.
+  // Purpose: Resets form and opens the modal.
+  // Runs when the "Add New Reward" button is clicked.
   const openAdd = () => {
     setEditTarget(null); setForm(emptyRewardForm); setFormErrors({}); setApiError(""); setModalOpen(true);
   };
+
+  // openEdit: Function to open the modal for editing an existing reward.
+  // Purpose: Populates form with existing reward data and opens the modal.
+  // Runs when the edit button on a reward card is clicked.
   const openEdit = (r) => {
     setEditTarget(r);
     setForm({ name: r.name, description: r.description, type: r.type, pointsCost: String(r.pointsCost), icon: r.icon });
     setFormErrors({}); setApiError(""); setModalOpen(true);
   };
+
+  // closeModal: Function to close the add/edit modal.
+  // Purpose: Resets modal state.
+  // Runs when the close button or cancel is clicked.
   const closeModal = () => { setModalOpen(false); setEditTarget(null); setForm(emptyRewardForm); setFormErrors({}); setApiError(""); };
 
+  // validate: Function to check if the form is valid.
+  // Purpose: Returns an object with error messages for invalid fields.
+  // Runs before submitting the form.
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Required";
@@ -236,6 +370,9 @@ function ConfigureTab() {
     return e;
   };
 
+  // handleSubmit: Async function to submit the form (add or edit reward).
+  // Purpose: Validates, sends data to server, and refreshes the list.
+  // Runs when the form is submitted.
   const handleSubmit = async (ev) => {
     ev.preventDefault(); setApiError("");
     const errs = validate();
@@ -250,22 +387,31 @@ function ConfigureTab() {
     finally { setSubmitting(false); }
   };
 
+  // toggle: Function to activate/deactivate a reward.
+  // Purpose: Toggles the isActive status of a reward via API.
+  // Runs when the activate/deactivate button is clicked.
   const toggle = async (r) => {
     try { await api.patch(`/rewards/${r._id}/toggle`); fetchRewards(); } catch { /* */ }
   };
 
+  // confirmDelete: Async function to delete a reward.
+  // Purpose: Sends delete request to server and refreshes the list.
+  // Runs when the delete confirmation is accepted.
   const confirmDelete = async () => {
     setDeleting(true);
     try { await api.delete(`/rewards/${deleteTarget._id}`); setDeleteTarget(null); fetchRewards(); }
     catch { setDeleteTarget(null); } finally { setDeleting(false); }
   };
 
+  // return: The JSX that defines what the ConfigureTab component renders.
+  // Purpose: Displays the points config, rewards list, modals, etc.
+  // Runs every time the component re-renders.
   return (
     <div>
-      {/* Points Configuration */}
+      {/* Points Configuration: Includes the PointsConfigSection component. */}
       <PointsConfigSection />
 
-      {/* Sub-header */}
+      {/* Sub-header: Shows stats and add button. */}
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm text-gray-500">
           <span className="font-semibold text-gray-700">{total}</span> reward{total !== 1 ? "s" : ""} •{" "}
@@ -280,6 +426,7 @@ function ConfigureTab() {
         </button>
       </div>
 
+      {/* Conditional rendering: Shows loading, empty state, or rewards grid. */}
       {loading ? (
         <div className="flex justify-center py-16 text-gray-400 text-sm gap-2"><IoRefreshOutline className="animate-spin text-lg" /> Loading…</div>
       ) : rewards.length === 0 ? (
@@ -289,9 +436,10 @@ function ConfigureTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Map over rewards to render each reward card. */}
           {rewards.map((r) => (
             <div key={r._id} className={`bg-white border rounded-2xl p-5 shadow-sm flex flex-col gap-3 ${!r.isActive ? "opacity-60" : ""}`}>
-              {/* Icon + Name */}
+              {/* Icon + Name: Displays the reward's icon and name. */}
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-[#d7ecc8] flex items-center justify-center text-[#4a6741] text-xl flex-shrink-0">
                   {ICON_MAP[r.icon] || <IoGiftOutline />}
@@ -301,16 +449,16 @@ function ConfigureTab() {
                   <p className="text-sm text-gray-500 mt-0.5">{r.description || "—"}</p>
                 </div>
               </div>
-              {/* Divider */}
+              {/* Divider: Visual separator. */}
               <div className="border-t border-gray-100" />
-              {/* Badge + points */}
+              {/* Badge + points: Shows type badge and points cost. */}
               <div className="flex items-center justify-between">
                 <span className={`text-xs font-semibold px-3 py-1 rounded-full ${TYPE_BADGE[r.type]}`}>
                   {TYPE_LABEL[r.type]}
                 </span>
                 <span className="text-xl font-bold text-[#4a6741]">{r.pointsCost} pts</span>
               </div>
-              {/* Actions */}
+              {/* Actions: Buttons for toggle, edit, delete. */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggle(r)}
@@ -334,7 +482,8 @@ function ConfigureTab() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Modal: Overlay for adding or editing a reward. */}
+      {/* Conditional rendering: Shows only if modalOpen is true. */}
       {modalOpen && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={closeModal} />
@@ -346,24 +495,26 @@ function ConfigureTab() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-5">
+              {/* Conditional rendering: Shows API error if present. */}
               {apiError && <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{apiError}</div>}
               <form id="reward-form" onSubmit={handleSubmit} className="space-y-4">
-                {/* Name */}
+                {/* Name input field. */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Name <span className="text-red-500">*</span></label>
                   <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                     placeholder="e.g. Free Drink"
                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition bg-white ${formErrors.name ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-[#4a6741]/20 focus:border-[#4a6741]"}`} />
+                  {/* Conditional rendering: Shows error if validation failed. */}
                   {formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}
                 </div>
-                {/* Description */}
+                {/* Description input field. */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Description</label>
                   <input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                     placeholder="e.g. Any regular-sized beverage"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4a6741]/20 focus:border-[#4a6741] transition bg-white" />
                 </div>
-                {/* Type + Icon */}
+                {/* Type and Icon selects. */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Type <span className="text-red-500">*</span></label>
@@ -384,12 +535,13 @@ function ConfigureTab() {
                     </select>
                   </div>
                 </div>
-                {/* Points */}
+                {/* Points Cost input. */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Points Cost <span className="text-red-500">*</span></label>
                   <input type="number" min="1" value={form.pointsCost} onChange={(e) => setForm((p) => ({ ...p, pointsCost: e.target.value }))}
                     placeholder="e.g. 50"
                     className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 transition bg-white ${formErrors.pointsCost ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-[#4a6741]/20 focus:border-[#4a6741]"}`} />
+                  {/* Conditional rendering: Shows error if validation failed. */}
                   {formErrors.pointsCost && <p className="text-xs text-red-500 mt-1">{formErrors.pointsCost}</p>}
                 </div>
               </form>
@@ -408,7 +560,8 @@ function ConfigureTab() {
         </>
       )}
 
-      {/* Delete confirm */}
+      {/* Delete confirm modal: Overlay for confirming reward deletion. */}
+      {/* Conditional rendering: Shows only if deleteTarget is set. */}
       {deleteTarget && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setDeleteTarget(null)} />
@@ -444,19 +597,62 @@ function ConfigureTab() {
 }
 
 // ─── Tab: Redeem Rewards ──────────────────────────────────────────────────────
+
+// RedeemTab: A React component for the Redeem Rewards tab.
+// Purpose: Allows admins to scan student QR codes and redeem rewards for them.
+// Used in the main Rewards component when the "redeem" tab is active.
+// Runs when the user switches to the Redeem tab.
 function RedeemTab() {
+  // useRef: A React hook to create a reference to a DOM element.
+  // scannerRef: Reference to the QR scanner container div.
+  // Used to attach the QR scanner to this element.
   const scannerRef = useRef(null);
+
+  // html5QrRef: Reference to the Html5Qrcode scanner instance.
+  // Used to control the scanner (start, stop).
   const html5QrRef = useRef(null);
+
+  // useState hooks for various states.
+
+  // scanning: Tracks if the QR scanner is active.
+  // Used to show/hide the scanner UI.
   const [scanning, setScanning] = useState(false);
+
+  // scanError: Stores error messages from scanning.
+  // Used to display scan errors to the user.
   const [scanError, setScanError] = useState("");
+
+  // student: Stores the student data after successful QR scan.
+  // Used to display student info and allow redemption.
   const [student, setStudent] = useState(null);
+
+  // rewards: Stores the list of active rewards.
+  // Used to display available rewards for redemption.
   const [rewards, setRewards] = useState([]);
+
+  // selectedReward: Stores the reward selected for redemption.
+  // Used to highlight the selected reward and enable redeem button.
   const [selectedReward, setSelectedReward] = useState(null);
+
+  // redeeming: Tracks if a redemption is in progress.
+  // Used to disable the redeem button and show loading.
   const [redeeming, setRedeeming] = useState(false);
+
+  // redeemError: Stores error messages from redemption.
+  // Used to display redemption errors.
   const [redeemError, setRedeemError] = useState("");
+
+  // success: Stores success info after redemption.
+  // Used to show a success banner with updated points.
   const [success, setSuccess] = useState(null);
+
+  // loadingStudent: Tracks if student lookup is in progress.
+  // Used to show loading spinner during QR scan processing.
   const [loadingStudent, setLoadingStudent] = useState(false);
 
+  // useEffect: Fetches active rewards when the component mounts.
+  // Purpose: Load rewards that can be redeemed.
+  // Runs once when the component first loads.
   useEffect(() => {
     api.get("/rewards", { params: { activeOnly: "true" } })
       .then(({ data }) => setRewards(data.rewards))
@@ -464,6 +660,9 @@ function RedeemTab() {
     return () => stopScanner();
   }, []);
 
+  // stopScanner: Function to stop the QR scanner.
+  // Purpose: Cleans up the scanner when not needed.
+  // Runs when scanning is cancelled or after successful scan.
   const stopScanner = () => {
     if (html5QrRef.current) {
       html5QrRef.current.stop().catch(() => {});
@@ -472,6 +671,9 @@ function RedeemTab() {
     setScanning(false);
   };
 
+  // startScanner: Async function to start the QR scanner.
+  // Purpose: Initializes and starts the camera for QR code scanning.
+  // Runs when the scan button is clicked.
   const startScanner = async () => {
     setScanError("");
     setScanning(true);
@@ -494,6 +696,9 @@ function RedeemTab() {
     }
   };
 
+  // lookupStudent: Async function to fetch student data by QR token.
+  // Purpose: Looks up the student using the scanned QR code.
+  // Runs after a QR code is successfully scanned.
   const lookupStudent = async (token) => {
     setLoadingStudent(true); setScanError("");
     try {
@@ -509,6 +714,9 @@ function RedeemTab() {
     }
   };
 
+  // handleRedeem: Async function to redeem the selected reward.
+  // Purpose: Sends redemption request to server and updates UI.
+  // Runs when the redeem button is clicked.
   const handleRedeem = async () => {
     if (!student || !selectedReward) return;
     setRedeeming(true); setRedeemError("");
@@ -524,16 +732,23 @@ function RedeemTab() {
     }
   };
 
+  // reset: Function to reset the redemption flow.
+  // Purpose: Clears student and reward selection to start over.
+  // Runs when the reset button is clicked.
   const reset = () => { setStudent(null); setSelectedReward(null); setRedeemError(""); setSuccess(null); setScanError(""); };
 
+  // return: The JSX for the RedeemTab component.
+  // Purpose: Renders the QR scanner and redemption interface.
+  // Runs every time the component re-renders.
   return (
     <div className="max-w-2xl">
+      {/* Conditional rendering: If no student is selected, show scan step. */}
       {!student ? (
         /* Step 1 — Scan */
         <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm">
           <p className="font-bold text-[#4a6741] text-base mb-4">Step 1: Scan Student QR Code</p>
 
-          {/* Scanner area */}
+          {/* Scanner area: Clickable div that starts scanning. */}
           <div
             id="qr-reader-wrapper"
             onClick={!scanning ? startScanner : undefined}
@@ -556,12 +771,14 @@ function RedeemTab() {
             )}
           </div>
 
+          {/* Cancel button: Shows only when scanning. */}
           {scanning && (
             <button onClick={stopScanner} className="mt-3 text-xs text-gray-500 hover:text-[#4a6741] underline">
               Cancel scanning
             </button>
           )}
 
+          {/* Scan error: Shows if there's an error. */}
           {scanError && (
             <div className="mt-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
               {scanError}
@@ -571,7 +788,7 @@ function RedeemTab() {
       ) : (
         /* Step 2 — Student found, pick reward */
         <div className="space-y-4">
-          {/* Student card */}
+          {/* Student card: Displays student info. */}
           <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-[#d7ecc8] flex items-center justify-center text-[#4a6741] font-bold text-lg">
               {student.fullName.charAt(0)}
@@ -589,7 +806,7 @@ function RedeemTab() {
             </button>
           </div>
 
-          {/* Success banner */}
+          {/* Success banner: Shows after successful redemption. */}
           {success && (
             <div className="bg-[#d7ecc8] border border-[#4a6741]/20 rounded-2xl px-5 py-4 flex items-center gap-3">
               <IoCheckmarkCircle className="text-[#4a6741] text-2xl flex-shrink-0" />
@@ -603,10 +820,12 @@ function RedeemTab() {
           {/* Step 2: Pick reward */}
           <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
             <p className="font-bold text-[#4a6741] mb-3">Step 2: Select a Reward</p>
+            {/* Conditional rendering: If no rewards, show message. */}
             {rewards.length === 0 ? (
               <p className="text-sm text-gray-400">No active rewards available.</p>
             ) : (
               <div className="space-y-2">
+                {/* Map over rewards to render selectable buttons. */}
                 {rewards.map((r) => {
                   const canAfford = student.points >= r.pointsCost;
                   const isSelected = selectedReward?._id === r._id;
@@ -634,10 +853,12 @@ function RedeemTab() {
               </div>
             )}
 
+            {/* Redeem error: Shows if redemption failed. */}
             {redeemError && (
               <div className="mt-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{redeemError}</div>
             )}
 
+            {/* Redeem button: Shows only if a reward is selected. */}
             {selectedReward && (
               <button
                 onClick={handleRedeem}
@@ -650,6 +871,7 @@ function RedeemTab() {
             )}
           </div>
 
+          {/* Back button: Allows scanning a different student. */}
           <button onClick={reset} className="text-sm text-gray-400 hover:text-[#4a6741] underline">
             ← Scan different student
           </button>
@@ -660,11 +882,30 @@ function RedeemTab() {
 }
 
 // ─── Tab: Redemption History ──────────────────────────────────────────────────
+
+// HistoryTab: A React component for the Redemption History tab.
+// Purpose: Displays a searchable list of past redemptions.
+// Used in the main Rewards component when the "history" tab is active.
+// Runs when the user switches to the History tab.
 function HistoryTab() {
+  // useState hooks.
+
+  // records: Stores the list of redemption records.
+  // Used to display the history table.
   const [records, setRecords] = useState([]);
+
+  // search: Stores the current search query.
+  // Used to filter records by student name or ID.
   const [search, setSearch] = useState("");
+
+  // loading: Tracks if records are being fetched.
+  // Used to show a loading spinner.
   const [loading, setLoading] = useState(true);
 
+  // fetchHistory: A memoized function to fetch redemption history.
+  // useCallback: Prevents unnecessary re-creations.
+  // Purpose: Gets filtered redemption records from the server.
+  // Runs when search changes or component mounts.
   const fetchHistory = useCallback(async () => {
     setLoading(true);
     try {
@@ -673,14 +914,19 @@ function HistoryTab() {
     } catch { /* */ } finally { setLoading(false); }
   }, [search]);
 
+  // useEffect: Calls fetchHistory with debouncing for search.
+  // Purpose: Updates records when search changes, with a delay to avoid too many requests.
+  // Runs when fetchHistory changes (i.e., when search changes).
   useEffect(() => {
     const t = setTimeout(fetchHistory, search ? 400 : 0);
     return () => clearTimeout(t);
   }, [fetchHistory]);
 
+  // return: The JSX for the HistoryTab component.
+  // Purpose: Renders the search bar and history table.
   return (
     <div>
-      {/* Search */}
+      {/* Search bar: Allows filtering records. */}
       <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 mb-4 focus-within:border-[#4a6741] transition">
         <IoSearchOutline className="text-gray-400 flex-shrink-0" />
         <input
@@ -690,7 +936,7 @@ function HistoryTab() {
         />
       </div>
 
-      {/* Table */}
+      {/* Table: Displays redemption records. */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="grid grid-cols-[1.5fr_1.2fr_1.2fr_0.8fr_1fr] items-center px-5 py-3 bg-[#e8f5e2] text-sm font-semibold text-[#4a6741]">
           <span>Student</span>
@@ -699,6 +945,7 @@ function HistoryTab() {
           <span>Points Used</span>
           <span>Timestamp</span>
         </div>
+        {/* Conditional rendering: Shows loading, empty state, or records. */}
         {loading ? (
           <div className="flex justify-center py-12 text-gray-400 text-sm gap-2"><IoRefreshOutline className="animate-spin text-lg" /> Loading…</div>
         ) : records.length === 0 ? (
@@ -708,6 +955,7 @@ function HistoryTab() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-50">
+            {/* Map over records to render table rows. */}
             {records.map((r) => (
               <li key={r._id} className="grid grid-cols-[1.5fr_1.2fr_1.2fr_0.8fr_1fr] items-center px-5 py-3.5 hover:bg-gray-50 transition">
                 <span className="text-sm font-medium text-gray-800">{r.studentName}</span>
@@ -728,35 +976,102 @@ function HistoryTab() {
 }
 
 // ─── Tab: BYOC Records ────────────────────────────────────────────────────────
+
+// ByocTab: A React component for the BYOC Records tab.
+// Purpose: Allows logging Bring Your Own Container (BYOC) actions and viewing records.
+// Used in the main Rewards component when the "byoc" tab is active.
+// Runs when the user switches to the BYOC tab.
 function ByocTab() {
+  // useRef hooks for scanner.
+
+  // scannerRef: Reference to the QR scanner container.
+  // Used to attach the QR scanner to this element.
   const scannerRef = useRef(null);
+
+  // html5QrRef: Reference to the scanner instance.
+  // Used to control the scanner (start, stop).
   const html5QrRef = useRef(null);
 
-  // Scanner state
+  // Scanner state.
+
+  // scanning: Tracks if scanner is active.
+  // Used to show/hide the scanner UI.
   const [scanning, setScanning] = useState(false);
+
+  // scanError: Stores scan errors.
+  // Used to display scan errors to the user.
   const [scanError, setScanError] = useState("");
+
+  // loadingStudent: Tracks student lookup.
+  // Used to show loading spinner during QR scan processing.
   const [loadingStudent, setLoadingStudent] = useState(false);
 
-  // Confirm modal state
-  const [confirmStudent, setConfirmStudent] = useState(null); // student found by QR
+  // Confirm modal state.
+
+  // confirmStudent: Stores student data for confirmation.
+  // Used to show student info in the confirmation modal.
+  const [confirmStudent, setConfirmStudent] = useState(null);
+
+  // ecoPoints: Stores the eco points per BYOC.
+  // Used to display how many points will be awarded.
   const [ecoPoints, setEcoPoints] = useState(5);
+
+  // confirming: Tracks confirmation in progress.
+  // Used to disable the confirm button and show loading.
   const [confirming, setConfirming] = useState(false);
+
+  // confirmError: Stores confirmation errors.
+  // Used to display errors in the confirmation modal.
   const [confirmError, setConfirmError] = useState("");
 
-  // Post-confirm state
-  const [awardedStudent, setAwardedStudent] = useState(null); // student after points added
+  // Post-confirm state.
+
+  // awardedStudent: Stores student after points awarded.
+  // Used to display updated student info and allow optional redemption.
+  const [awardedStudent, setAwardedStudent] = useState(null);
+
+  // rewards: Stores active rewards for optional redemption.
+  // Used to display rewards that can be redeemed immediately after BYOC.
   const [rewards, setRewards] = useState([]);
+
+  // selectedReward: Stores selected reward for redemption.
+  // Used to highlight the selected reward and enable redeem button.
   const [selectedReward, setSelectedReward] = useState(null);
+
+  // redeeming: Tracks redemption in progress.
+  // Used to disable the redeem button and show loading.
   const [redeeming, setRedeeming] = useState(false);
+
+  // redeemError: Stores redemption errors.
+  // Used to display redemption errors.
   const [redeemError, setRedeemError] = useState("");
+
+  // redeemSuccess: Stores redemption success info.
+  // Used to show success message after redemption.
   const [redeemSuccess, setRedeemSuccess] = useState(null);
 
-  // Records list
+  // Records list state.
+
+  // records: Stores BYOC records.
+  // Used to display the list of BYOC logs.
   const [records, setRecords] = useState([]);
+
+  // stats: Stores stats like eco points today and containers saved.
+  // Used to display summary statistics.
   const [stats, setStats] = useState({ ecoPointsToday: 0, containersSavedMonth: 0 });
+
+  // search: Stores search query for filtering records.
+  // Used to filter BYOC records by student name or ID.
   const [search, setSearch] = useState("");
+
+  // loading: Tracks if records are loading.
+  // Used to show loading spinner for the records list.
   const [loading, setLoading] = useState(true);
 
+  // fetchByoc: Memoized function to fetch BYOC records.
+  // useCallback: Prevents unnecessary re-creations.
+  // Purpose: Gets filtered BYOC records from the server.
+  // Runs when search changes or component mounts.
   const fetchByoc = useCallback(async () => {
     setLoading(true);
     try {
@@ -766,18 +1081,26 @@ function ByocTab() {
     } catch { /* */ } finally { setLoading(false); }
   }, [search]);
 
+  // useEffect for search debouncing.
+  // Purpose: Updates records when search changes, with a delay to avoid too many requests.
+  // Runs when fetchByoc changes (i.e., when search changes).
   useEffect(() => {
     const t = setTimeout(fetchByoc, search ? 400 : 0);
     return () => clearTimeout(t);
   }, [fetchByoc]);
 
-  // Load eco points config + active rewards once
+  // useEffect to load config and rewards on mount.
+  // Purpose: Fetches eco points config and active rewards when the component loads.
+  // Runs once when the component first loads.
   useEffect(() => {
     api.get("/points-config").then(({ data }) => setEcoPoints(data.ecoPointsPerByoc ?? 5)).catch(() => {});
     api.get("/rewards", { params: { activeOnly: "true" } }).then(({ data }) => setRewards(data.rewards)).catch(() => {});
     return () => stopScanner();
   }, []);
 
+  // stopScanner: Function to stop the QR scanner.
+  // Purpose: Cleans up the scanner when not needed.
+  // Runs when scanning is cancelled or after successful scan.
   const stopScanner = () => {
     if (html5QrRef.current) {
       html5QrRef.current.stop().catch(() => {});
@@ -786,6 +1109,9 @@ function ByocTab() {
     setScanning(false);
   };
 
+  // startScanner: Async function to start the QR scanner for BYOC.
+  // Purpose: Initializes and starts the camera for QR code scanning.
+  // Runs when the scan button is clicked.
   const startScanner = async () => {
     setScanError("");
     setScanning(true);
@@ -816,6 +1142,9 @@ function ByocTab() {
     }
   };
 
+  // handleConfirm: Async function to confirm BYOC and award points.
+  // Purpose: Sends BYOC log request to server and updates UI.
+  // Runs when the confirm button is clicked in the modal.
   const handleConfirm = async () => {
     if (!confirmStudent) return;
     setConfirming(true); setConfirmError("");
@@ -831,6 +1160,9 @@ function ByocTab() {
     }
   };
 
+  // handleRedeem: Async function to redeem a reward after BYOC.
+  // Purpose: Sends redemption request to server and updates UI.
+  // Runs when the redeem button is clicked.
   const handleRedeem = async () => {
     if (!awardedStudent || !selectedReward) return;
     setRedeeming(true); setRedeemError("");
@@ -846,12 +1178,18 @@ function ByocTab() {
     }
   };
 
+  // resetFlow: Function to reset the entire BYOC flow.
+  // Purpose: Clears all state to start over.
+  // Runs when the reset button is clicked.
   const resetFlow = () => {
     setConfirmStudent(null); setConfirmError("");
     setAwardedStudent(null); setSelectedReward(null);
     setRedeemError(""); setRedeemSuccess(null); setScanError("");
   };
 
+  // roleBadge: Helper function to get badge styles for roles.
+  // Purpose: Returns Tailwind classes for role badges.
+  // Example: roleBadge("admin") returns "bg-[#d7ecc8] text-[#4a6741]".
   const roleBadge = (role) =>
     role === "admin" ? "bg-[#d7ecc8] text-[#4a6741]" : "bg-gray-100 text-gray-600";
 
@@ -972,6 +1310,7 @@ function ByocTab() {
       </div>
 
       {/* ── Confirm Modal ── */}
+      {/* Conditional rendering: Shows only if confirmStudent is set. */}
       {confirmStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
@@ -994,6 +1333,7 @@ function ByocTab() {
                 <p className="text-4xl font-extrabold text-[#4a6741]">+{ecoPoints}</p>
                 <p className="text-xs text-[#4a6741]/60 mt-1">Eco Points</p>
               </div>
+              {/* Conditional rendering: Shows error if present. */}
               {confirmError && (
                 <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">{confirmError}</div>
               )}
@@ -1055,6 +1395,7 @@ function ByocTab() {
           <span>Confirmed By</span>
           <span>Timestamp</span>
         </div>
+        {/* Conditional rendering: Shows loading, empty state, or records. */}
         {loading ? (
           <div className="flex justify-center py-12 text-gray-400 text-sm gap-2"><IoRefreshOutline className="animate-spin text-lg" /> Loading…</div>
         ) : records.length === 0 ? (
@@ -1064,6 +1405,7 @@ function ByocTab() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-50">
+            {/* Map over records to render table rows. */}
             {records.map((r) => (
               <li key={r._id} className="grid grid-cols-[1.5fr_1.2fr_1fr_1fr_1.2fr] items-center px-5 py-3.5 hover:bg-gray-50 transition">
                 <span className="text-sm font-medium text-gray-800">{r.studentName}</span>
@@ -1088,12 +1430,22 @@ function ByocTab() {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
+
+// Rewards: The main React component for the Rewards page.
+// Purpose: Renders the rewards management interface with tabs.
+// Used as the main page component in the admin section.
+// Runs when the user navigates to the Rewards page.
 export default function Rewards() {
+  // useState: Stores the currently active tab.
+  // Used to switch between different sections (redeem, configure, history, byoc).
   const [activeTab, setActiveTab] = useState("redeem");
 
+  // return: The JSX that defines the main page layout.
+  // Purpose: Displays the header, tabs, and the active tab content.
+  // Runs every time the component re-renders.
   return (
     <AdminLayout breadcrumb="Rewards">
-      {/* Header */}
+      {/* Header: Displays the page title and description. */}
       <div className="flex items-start justify-between mb-2">
         <div>
           <h1 className="text-2xl font-bold text-[#4a6741]">Rewards Management</h1>
@@ -1104,8 +1456,9 @@ export default function Rewards() {
         </button>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs: Navigation to switch between sections. */}
       <div className="flex items-center gap-0 border-b border-gray-200 mb-6 mt-4">
+        {/* Map over TABS to render tab buttons. */}
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -1122,7 +1475,8 @@ export default function Rewards() {
         ))}
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content: Conditionally renders the active tab component. */}
+      {/* Checks activeTab and shows the corresponding component. */}
       {activeTab === "redeem" && <RedeemTab />}
       {activeTab === "configure" && <ConfigureTab />}
       {activeTab === "history" && <HistoryTab />}

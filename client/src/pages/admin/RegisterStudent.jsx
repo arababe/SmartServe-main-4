@@ -1,3 +1,8 @@
+// Import React hooks
+// useState = stores changing values/data
+// useRef = references HTML elements directly
+// useEffect = runs code automatically when component loads/updates
+// useCallback = memorizes functions to improve performance
 import { useState, useRef, useEffect, useCallback } from "react";
 import QRCode from "react-qr-code";
 import {
@@ -24,13 +29,29 @@ import {
   IoAlertCircleOutline,
 } from "react-icons/io5";
 import { MdTag } from "react-icons/md";
+
 import AdminLayout from "../../components/AdminLayout";
 import api from "../../utils/api";
 import { useAuth } from "../../context/AuthContext";
 
-// ── Reusable field ────────────────────────────────────────────────────────────
+// ─────────────────────────────
+// Reusable field component
+// Purpose: create a shared input box with icon, label, and error message.
+// Runs when the page needs an input field in the form.
+// Props:
+// - label: the text shown above the input.
+// - required: shows a red star if the field is required.
+// - icon: small icon shown inside the input.
+// - error: shows validation text below the field.
+// - type: the HTML input type, like "text" or "password".
+// - ...props: any other input properties like name, value, onChange.
+// ─────────────────────────────
 const Field = ({ label, required, icon, error, type = "text", ...props }) => {
+  // showPwd stores whether the password field should be visible.
+  // This is only used when the input type is "password".
   const [showPwd, setShowPwd] = useState(false);
+  // isPassword is true when the field type is password.
+  // It controls whether we show the eye toggle and hide the input text.
   const isPassword = type === "password";
   return (
     <div>
@@ -52,6 +73,9 @@ const Field = ({ label, required, icon, error, type = "text", ...props }) => {
             }`}
         />
         {isPassword && (
+          // Show/hide password button
+          // Purpose: let the user toggle between hidden and visible password text.
+          // Runs only when this field is a password input.
           <button
             type="button"
             tabIndex={-1}
@@ -67,6 +91,14 @@ const Field = ({ label, required, icon, error, type = "text", ...props }) => {
   );
 };
 
+// Default empty form values used when opening the create panel or resetting the form.
+// If this is missing, form state can become inconsistent between create/edit modes.
+// ─────────────────────────────
+// Initial form state
+// Purpose: define the default blank values for the registration form.
+// When the form opens, this object fills in the fields.
+// If we did not use this, the form would start with undefined values.
+// ─────────────────────────────
 const initialForm = {
   firstName: "",
   lastName: "",
@@ -81,11 +113,13 @@ const initialForm = {
   confirmPassword: "",
 };
 
-// ── QR download helper ────────────────────────────────────────────────────────
+// Helper that converts the rendered QR code SVG into a downloadable PNG file.
+// Without this, the QR code could be shown but users would not be able to save it as an image.
 const downloadQR = (svgEl, filename) => {
   if (!svgEl) return;
   const serializer = new XMLSerializer();
   const svgStr = serializer.serializeToString(svgEl);
+  // Create a blank canvas to draw the SVG image onto.
   const canvas = document.createElement("canvas");
   const size = 300;
   canvas.width = size;
@@ -93,6 +127,7 @@ const downloadQR = (svgEl, filename) => {
   const ctx = canvas.getContext("2d");
   const img = new Image();
   img.onload = () => {
+    // When the image loads, fill the canvas with white and draw the SVG image.
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, size, size);
     ctx.drawImage(img, 0, 0, size, size);
@@ -105,8 +140,23 @@ const downloadQR = (svgEl, filename) => {
 };
 
 export default function RegisterStudent() {
+  // ─────────────────────────────
+  // Component setup
+  // Purpose: main React function component for the Register Student page.
+  // When React renders this page, this function runs and sets up state, effects, and event handlers.
+  // ─────────────────────────────
   const { user } = useAuth();
+
+  // ─────────────────────────────
   // List state
+  // Purpose: store the student/employee list and pagination values.
+  // - students: array of users shown in the table.
+  // - total: total number of users found by the backend.
+  // - page: current page number for pagination.
+  // - search: current search text typed by the admin.
+  // - listLoading: true while the list is loading.
+  // - limit: number of users per page.
+  // ─────────────────────────────
   const [students, setStudents] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -114,7 +164,18 @@ export default function RegisterStudent() {
   const [listLoading, setListLoading] = useState(true);
   const limit = 10;
 
-  // Modal / form state  (mode: null | "create" | "view" | "edit" | "delete")
+  // ─────────────────────────────
+  // Modal / form state
+  // Purpose: track which panel is open and the current form values.
+  // - mode: controls whether the create, view, edit, or delete panel is shown.
+  // - selectedStudent: the user object being viewed/edited/deleted.
+  // - form: the object containing all form field values.
+  // - errors: validation messages for each form field.
+  // - submitting: true while a create/edit/delete request is in progress.
+  // - apiError: backend error message shown to the admin.
+  // - created: stores the newly created user after successful registration.
+  // - qrRef: reference to the QR code element so it can be downloaded.
+  // ─────────────────────────────
   const [mode, setMode] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [form, setForm] = useState(initialForm);
@@ -124,7 +185,11 @@ export default function RegisterStudent() {
   const [created, setCreated] = useState(null);
   const qrRef = useRef(null);
 
-  // Row action dropdown
+  // ─────────────────────────────
+  // Dropdown state and click outside handler
+  // Purpose: close the action menu when the user clicks outside it.
+  // useEffect runs once when the component mounts, and cleanup runs when it unmounts.
+  // ─────────────────────────────
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRef = useRef(null);
   useEffect(() => {
@@ -135,7 +200,12 @@ export default function RegisterStudent() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Fetch students
+  // ─────────────────────────────
+  // Fetch students from the backend
+  // Purpose: get the current list of users from the server.
+  // async/await is used so the code waits for the API call before updating state.
+  // useCallback keeps the function stable so it only changes when search or page changes.
+  // ─────────────────────────────
   const fetchStudents = useCallback(async () => {
     setListLoading(true);
     try {
@@ -145,12 +215,17 @@ export default function RegisterStudent() {
       setStudents(data.students);
       setTotal(data.total);
     } catch {
-      // silently fail — show empty state
+      // If the API request fails, the list stays empty and the UI shows an empty state.
     } finally {
       setListLoading(false);
     }
   }, [search, page]);
 
+  // ─────────────────────────────
+  // Debounced search effect
+  // Purpose: delay the API request slightly after typing, so the browser does not call the server on every keystroke.
+  // This improves performance and avoids too many backend requests.
+  // ─────────────────────────────
   useEffect(() => {
     const t = setTimeout(fetchStudents, search ? 400 : 0);
     return () => clearTimeout(t);
@@ -158,13 +233,23 @@ export default function RegisterStudent() {
 
   const totalPages = Math.ceil(total / limit);
 
-  // ── Form helpers ──────────────────────────────────────────────────────────
+  // ─────────────────────────────
+  // Form helpers
+  // Purpose: update the form state and validate user input before saving.
+  // ─────────────────────────────
+  // handleChange runs when any input field changes.
+  // It uses destructuring to get name and value from the event target.
+  // It uses the spread operator {...p} to keep the previous form values,
+  // and update only the field that changed.
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
   };
 
+  // validate checks the form before sending it to the server.
+  // It returns an object with error messages for fields that are wrong.
+  // If isEdit is true, password fields are optional unless the admin enters a new password.
   const validate = (isEdit = false) => {
     const e = {};
     if (!form.firstName.trim()) e.firstName = "Required";
@@ -182,6 +267,8 @@ export default function RegisterStudent() {
     return e;
   };
 
+  // closePanel resets the form and modal state.
+  // It is used when the admin closes any panel or after a successful action.
   const closePanel = () => {
     setMode(null);
     setSelectedStudent(null);
@@ -191,7 +278,11 @@ export default function RegisterStudent() {
     setCreated(null);
   };
 
-  // ── Open helpers ──────────────────────────────────────────────────────────
+  // ─────────────────────────────
+  // Open helpers
+  // Purpose: switch the UI to create/view/edit/delete mode.
+  // Each function sets the mode, and optionally loads a user into the form.
+  // ─────────────────────────────
   const openCreate = () => {
     setCreated(null);
     setForm(initialForm);
@@ -207,6 +298,9 @@ export default function RegisterStudent() {
   };
 
   const openEdit = (s) => {
+    // Split the full name into first name and the rest of the name.
+    // This uses array destructuring: firstName gets the first word,
+    // and rest becomes an array of the remaining words.
     const [firstName, ...rest] = (s.fullName || "").split(" ");
     setSelectedStudent(s);
     setForm({
@@ -234,7 +328,13 @@ export default function RegisterStudent() {
     setOpenMenuId(null);
   };
 
-  // ── Submit: Create ────────────────────────────────────────────────────────
+  // ─────────────────────────────
+  // Submit: Create
+  // Purpose: send the new student/employee details to the backend API.
+  // The async keyword means the function runs asynchronously and can wait for the server.
+  // e.preventDefault() stops the browser from reloading the page when the form is submitted.
+  // If there are validation errors, the function returns early and does not call the server.
+  // ─────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError("");
@@ -263,7 +363,12 @@ export default function RegisterStudent() {
     }
   };
 
-  // ── Submit: Edit ──────────────────────────────────────────────────────────
+  // ─────────────────────────────
+  // Submit: Edit
+  // Purpose: update an existing user and refresh the table.
+  // The payload object is built from form fields, and password is only included when set.
+  // This uses async/await so the code waits for the server response before continuing.
+  // ─────────────────────────────
   const handleEdit = async (e) => {
     e.preventDefault();
     setApiError("");
@@ -293,7 +398,11 @@ export default function RegisterStudent() {
     }
   };
 
-  // ── Submit: Delete ────────────────────────────────────────────────────────
+  // ─────────────────────────────
+  // Submit: Delete
+  // Purpose: remove the selected user from the backend.
+  // The code waits for api.delete() before refreshing the list.
+  // ─────────────────────────────
   const handleDelete = async () => {
     setSubmitting(true);
     try {
@@ -307,12 +416,21 @@ export default function RegisterStudent() {
     }
   };
 
+  // statusBadge returns a Tailwind CSS class string based on whether the user is active.
+  // This is used to show a green badge for active users and a red badge for inactive users.
   const statusBadge = (active) =>
     active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-500";
 
+  // Render the admin page layout, including the user list, search controls, pagination,
+  // and slide-in panel for create/view/edit/delete actions.
+  // If this is removed, the component would not output any UI.
   return (
     <AdminLayout breadcrumb="Register Student">
-      {/* ── Header ── */}
+      {/* ─────────────────────────────
+          Page header
+          Purpose: show the page title, summary count, and Add User button.
+          Runs every render so the header updates when total changes.
+      ───────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-bold text-[#4a6741]">Students &amp; Employees</h1>
@@ -327,7 +445,11 @@ export default function RegisterStudent() {
         </button>
       </div>
 
-      {/* ── Search + Refresh ── */}
+      {/* ─────────────────────────────
+          Search and refresh controls
+          Purpose: let the admin search users and manually refresh the list.
+          The input updates the search state and triggers fetchStudents with debounce.
+      ───────────────────────────── */}
       <div className="flex items-center gap-3 mb-4">
         <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2.5 focus-within:border-[#4a6741] transition">
           <IoSearchOutline className="text-gray-400 text-base flex-shrink-0" />
@@ -353,7 +475,11 @@ export default function RegisterStudent() {
         </button>
       </div>
 
-      {/* ── Table ── */}
+      {/* ─────────────────────────────
+          User table
+          Purpose: show the list of users, or loading/empty states if there are none.
+          Uses conditional rendering based on listLoading and students.length.
+      ───────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="hidden md:grid grid-cols-[1fr_1.4fr_1fr_0.7fr_0.7fr_0.6fr_0.5fr_40px] items-center px-5 py-3 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-400 uppercase tracking-wide">
           <span>ID</span>
@@ -366,6 +492,7 @@ export default function RegisterStudent() {
           <span />
         </div>
 
+        {/* If listLoading is true, show a loading spinner. Else if no students are found, show an empty message. Else show the student list. */}
         {listLoading ? (
           <div className="flex items-center justify-center py-16 text-gray-400 text-sm gap-2">
             <IoRefreshOutline className="animate-spin text-lg" /> Loading…
@@ -377,6 +504,10 @@ export default function RegisterStudent() {
           </div>
         ) : (
           <ul className="divide-y divide-gray-50">
+            {/* Render each student/employee row from the students array.
+                The map() function loops over the list and returns one <li> per item.
+                key={s._id} helps React identify which rows have changed.
+            */}
             {students.map((s) => (
               <li
                 key={s._id}
@@ -463,13 +594,21 @@ export default function RegisterStudent() {
         )}
       </div>
 
-      {/* ── Slide-in Panel ── */}
+      {/* ─────────────────────────────
+          Slide-in panel block
+          Purpose: show a side panel when the admin opens view/edit/delete/create.
+          The panel appears only when mode is not null.
+      ───────────────────────────── */}
       {mode !== null && (
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={closePanel} />
           <div className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white shadow-2xl flex flex-col overflow-hidden">
 
-            {/* ── VIEW panel ── */}
+            {/* ─────────────────────────────
+                View panel
+                Purpose: show the details of the selected user.
+                This renders only when mode is "view" and selectedStudent exists.
+            ───────────────────────────── */}
             {mode === "view" && selectedStudent && (
               <>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -544,7 +683,11 @@ export default function RegisterStudent() {
               </>
             )}
 
-            {/* ── EDIT panel ── */}
+            {/* ─────────────────────────────
+                Edit panel
+                Purpose: show the edit form for the selected user.
+                This renders only when mode is "edit" and selectedStudent exists.
+            ───────────────────────────── */}
             {mode === "edit" && selectedStudent && (
               <>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -564,7 +707,11 @@ export default function RegisterStudent() {
                       </div>
                     )}
 
-                    {/* User Type Toggle */}
+                    {/* User Type Toggle
+                        Purpose: show buttons for selecting Student or Employee.
+                        .map() loops over the array and creates one button per option.
+                        The callback receives [val, label, icon] for each button.
+                    */}
                     <div>
                       <p className="text-xs font-bold text-[#4a6741] uppercase tracking-wide mb-3">User Type</p>
                       <div className="flex gap-2">
@@ -596,10 +743,17 @@ export default function RegisterStudent() {
                       </div>
                     </div>
 
+                    {/* If userType is student, show school-related fields. Else show employee fields. */}
                     {form.userType === "student" ? (
                       <div>
                         <p className="text-xs font-bold text-[#4a6741] uppercase tracking-wide mb-3">Academic Information</p>
                         <div className="space-y-3">
+                          {/* Convert school/employee ID to uppercase as the user types.
+                              This ensures IDs are stored in a consistent format.
+                          */}
+                          {/* Convert school/employee ID to uppercase as the user types.
+                              This ensures IDs are stored in a consistent format.
+                          */}
                           <Field
                             label="School ID" required name="schoolId" value={form.schoolId}
                             onChange={(e) => handleChange({ target: { name: "schoolId", value: e.target.value.toUpperCase() } })}
@@ -655,7 +809,11 @@ export default function RegisterStudent() {
               </>
             )}
 
-            {/* ── DELETE panel ── */}
+            {/* ─────────────────────────────
+                Delete panel
+                Purpose: confirm deletion for the selected user.
+                This renders only when mode is "delete" and selectedStudent exists.
+            ───────────────────────────── */}
             {mode === "delete" && selectedStudent && (
               <>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -698,7 +856,11 @@ export default function RegisterStudent() {
               </>
             )}
 
-            {/* ── CREATE panel ── */}
+            {/* ─────────────────────────────
+                Create panel
+                Purpose: show the registration form for a new user.
+                This renders only when mode is "create".
+            ───────────────────────────── */}
             {mode === "create" && (
               <>
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -716,6 +878,7 @@ export default function RegisterStudent() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
+                  {/* If created has a value, show the success screen instead of the registration form. */}
                   {created ? (
                     <div className="px-6 py-6 flex flex-col items-center gap-4">
                       <div className="w-12 h-12 bg-[#e8f5e2] rounded-full flex items-center justify-center">
@@ -761,6 +924,11 @@ export default function RegisterStudent() {
 
                       <div>
                         <p className="text-xs font-bold text-[#4a6741] uppercase tracking-wide mb-3">User Type</p>
+                        {/* User Type Toggle
+                            Purpose: choose whether the new user is a student or employee.
+                            The .map() call creates one button for each option.
+                            The callback receives [val, label, icon] for each button.
+                        */}
                         <div className="flex gap-2">
                           {[["student", "Student", <IoSchoolOutline />], ["employee", "Employee", <IoBriefcaseOutline />]].map(([val, label, icon]) => (
                             <button

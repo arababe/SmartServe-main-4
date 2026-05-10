@@ -72,6 +72,7 @@ exports.getDashboardStats = async (req, res) => {
       .limit(5)
       .select("studentName schoolId rewardName pointsUsed createdAt");
 
+      //dito yung current-previous day / previous day * 100
     const pctChange = (today, yesterday) => {
       if (yesterday === 0) return today > 0 ? 100 : 0;
       return Math.round(((today - yesterday) / yesterday) * 100);
