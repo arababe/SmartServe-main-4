@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { register, login, getMe, getPendingUsers, approveUser, getStaffAccounts, createStaffAccount, deleteStaffAccount } = require("../controllers/authController");
+const { register, login, getMe, getPendingUsers, approveUser, getStaffAccounts, createStaffAccount, deleteStaffAccount, changePassword, resetStaffPassword } = require("../controllers/authController");
 const { forgotPassword, verifyResetCode, resetPassword } = require("../controllers/passwordController");
 const { protect, restrictTo } = require("../middleware/auth");
 
@@ -21,5 +21,9 @@ router.put("/approve/:id", protect, restrictTo("admin"), approveUser);
 router.get("/staff", protect, restrictTo("admin", "staff"), getStaffAccounts);
 router.post("/staff", protect, restrictTo("admin"), createStaffAccount);
 router.delete("/staff/:id", protect, restrictTo("admin"), deleteStaffAccount);
+router.post("/staff/:id/reset-password", protect, restrictTo("admin"), resetStaffPassword);
+
+// Admin password management
+router.patch("/change-password", protect, changePassword);
 
 module.exports = router;

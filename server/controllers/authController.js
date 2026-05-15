@@ -221,3 +221,93 @@ exports.deleteStaffAccount = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// PATCH /api/auth/change-password  (protected - admin changing own password)
+exports.changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "New passwords do not match" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    if (oldPassword === newPassword) {
+      return res.status(400).json({ message: "New password must be different from old password" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!(await user.matchPassword(oldPassword))) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    logAudit({
+      action: "Password Changed",
+      actorType: req.user.role,
+      actorId: req.user._id,
+      actorName: req.user.fullName,
+      description: `${req.user.fullName} changed their password`,
+      category: "auth",
+    });
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// POST /api/auth/staff/:id/reset-password  (admin only - reset another staff member's password)
+exports.resetStaffPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent resetting own password through this endpoint
+    if (id === String(req.user._id)) {
+      return res.status(400).json({ message: "Use the change password endpoint for your own account" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const crypto = require("crypto");
+    const resetCode = String(Math.floor(100000 + crypto.randomInt(900000)));
+    const resetCodeExpiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    user.resetCode = resetCode;
+    user.resetCodeExpiry = resetCodeExpiry;
+    await user.save({ validateBeforeSave: false });
+
+    const { sendResetCode } = require("../config/mailer");
+    await sendResetCode(user.email, resetCode);
+
+    logAudit({
+      action: "Staff Password Reset",
+      actorType: req.user.role,
+      actorId: req.user._id,
+      actorName: req.user.fullName,
+      description: `${req.user.fullName} initiated password reset for ${user.fullName}`,
+      category: "auth",
+      meta: { targetUserId: user._id, targetUserEmail: user.email },
+    });
+
+    res.json({ message: "Password reset code sent to user's email" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

@@ -224,8 +224,8 @@ function NotificationBell() {
 
 const navItems = [
   { label: "Dashboard", icon: <IoGridOutline />, to: "/dashboard" },
-  { label: "Register Student", icon: <IoPersonAddOutline />, to: "/dashboard/register-student" },
-  { label: "Student Lookup", icon: <IoSearchOutline />, to: "/dashboard/student-lookup", wip: true },
+  { label: "Register User", icon: <IoPersonAddOutline />, to: "/dashboard/register-student" },
+  { label: "User Lookup", icon: <IoSearchOutline />, to: "/dashboard/student-lookup", wip: true },
   { label: "Inventory", icon: <IoCubeOutline />, to: "/dashboard/inventory" },
   { label: "Orders", icon: <IoReceiptOutline />, to: "/dashboard/orders" },
   { label: "Alerts", icon: <IoNotificationsOutline />, to: "/dashboard/alerts", wip: true },

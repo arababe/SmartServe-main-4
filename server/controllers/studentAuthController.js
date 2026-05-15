@@ -152,3 +152,45 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// PATCH /api/student/auth/change-password  (protected)
+// Logged-in user changes their own password
+exports.changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "New passwords do not match" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const student = req.student;
+    if (!await student.matchPassword(oldPassword)) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    student.password = newPassword;
+    await student.save();
+
+    logAudit({
+      action: "Password Changed",
+      actorType: "student",
+      actorId: student._id,
+      actorName: student.fullName,
+      description: `${student.fullName} (${student.schoolId}) changed their password`,
+      category: "auth",
+      meta: { studentId: student._id },
+    });
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

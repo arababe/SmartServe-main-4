@@ -192,3 +192,36 @@ exports.deleteStudent = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// POST /api/students/:id/reset-password  (admin/staff only)
+// Admin initiates a password reset for a user — sends reset code email
+exports.resetStudentPassword = async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: "User not found" });
+
+    const { sendResetCode } = require("../config/mailer");
+    const resetCode = String(Math.floor(100000 + crypto.randomInt(900000)));
+    const resetCodeExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 min expiry
+
+    student.resetCode = resetCode;
+    student.resetCodeExpiry = resetCodeExpiry;
+    await student.save({ validateBeforeSave: false });
+
+    await sendResetCode(student.email, resetCode);
+
+    logAudit({
+      action: "Password Reset Initiated",
+      actorType: req.user.role,
+      actorId: req.user._id,
+      actorName: req.user.fullName,
+      description: `${req.user.fullName} initiated password reset for user "${student.fullName}" (${student.schoolId})`,
+      category: "student",
+      meta: { studentId: student._id, schoolId: student.schoolId },
+    });
+
+    res.json({ message: "Password reset code sent to user's email" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

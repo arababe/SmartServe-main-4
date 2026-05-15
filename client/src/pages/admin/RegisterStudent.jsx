@@ -425,7 +425,7 @@ export default function RegisterStudent() {
   // and slide-in panel for create/view/edit/delete actions.
   // If this is removed, the component would not output any UI.
   return (
-    <AdminLayout breadcrumb="Register Student">
+    <AdminLayout breadcrumb="Register User">
       {/* ─────────────────────────────
           Page header
           Purpose: show the page title, summary count, and Add User button.
@@ -433,7 +433,7 @@ export default function RegisterStudent() {
       ───────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-[#4a6741]">Students &amp; Employees</h1>
+          <h1 className="text-2xl font-bold text-[#4a6741]">Users</h1>
           <p className="text-sm text-gray-400">{total} user{total !== 1 ? "s" : ""} registered</p>
         </div>
         <button

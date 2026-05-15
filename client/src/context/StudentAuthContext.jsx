@@ -80,11 +80,31 @@ export function StudentAuthProvider({ children }) {
   };
 
   // ──────────────────────────────────────────────────────
+  // CHANGE PASSWORD FUNCTION
+  // Logged-in user changes their own password
+  // Requires old password verification before allowing new password
+  // ──────────────────────────────────────────────────────
+  const changePassword = async (oldPassword, newPassword, confirmPassword) => {
+    try {
+      await studentApi.patch("/student/auth/change-password", {
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      });
+      // After successful password change, logout the user to force re-authentication
+      logout();
+      return { success: true, message: "Password changed successfully. Please log in with your new password." };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Password change failed" };
+    }
+  };
+
+  // ──────────────────────────────────────────────────────
   // PROVIDER RETURN
   // Ibinibigay ang auth state at functions sa mga anak components
   // ──────────────────────────────────────────────────────
   return (
-    <StudentAuthContext.Provider value={{ student, loading, login, logout, refreshStudent }}>
+    <StudentAuthContext.Provider value={{ student, loading, login, logout, refreshStudent, changePassword }}>
       {children}
     </StudentAuthContext.Provider>
   );

@@ -908,7 +908,13 @@ function RewardsView({ student, refreshStudent }) {
 
 // ── Profile View ─────────────────────────────────────────────────────────────
 function ProfileView({ student, onClose }) {
-  const { logout } = useStudentAuth();
+  const { logout, changePassword } = useStudentAuth();
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
+
   const isEmployee = student?.userType === "employee";
   const idLabel = isEmployee ? "Employee ID" : "School ID";
   const subInfoLabel = isEmployee ? "Job Title / Dept" : "Grade & Section";
@@ -925,6 +931,115 @@ function ProfileView({ student, onClose }) {
     { icon: <IoMailOutline className="text-[#4a6741] text-lg" />,   label: "Email",         value: student?.email ?? "—" },
     { icon: <IoCalendarOutline className="text-[#4a6741] text-lg" />, label: "Member Since", value: memberSince },
   ];
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordErrors({});
+    setPasswordMessage("");
+
+    const errors = {};
+    if (!passwordForm.oldPassword) errors.oldPassword = "Current password is required";
+    if (!passwordForm.newPassword) errors.newPassword = "New password is required";
+    else if (passwordForm.newPassword.length < 6) errors.newPassword = "Min. 6 characters";
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) errors.confirmPassword = "Passwords don't match";
+
+    if (Object.keys(errors).length) {
+      setPasswordErrors(errors);
+      return;
+    }
+
+    setChangingPassword(true);
+    const result = await changePassword(passwordForm.oldPassword, passwordForm.newPassword, passwordForm.confirmPassword);
+    setChangingPassword(false);
+
+    if (result.success) {
+      setPasswordMessage(result.message);
+      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      setTimeout(() => {
+        setShowChangePassword(false);
+        onClose();
+      }, 1500);
+    } else {
+      setPasswordMessage(result.message);
+    }
+  };
+
+  if (showChangePassword) {
+    return (
+      <div className="flex-1 overflow-y-auto pb-6 bg-gray-50">
+        <div className="mx-4 mt-4 bg-white rounded-3xl shadow-sm px-6 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-base font-extrabold text-[#4a6741]">Change Password</p>
+            <button onClick={() => setShowChangePassword(false)} className="text-gray-400 hover:text-gray-600">
+              <IoCloseOutline className="text-xl" />
+            </button>
+          </div>
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Current Password</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={passwordForm.oldPassword}
+                  onChange={(e) => setPasswordForm(p => ({ ...p, oldPassword: e.target.value }))}
+                  className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition
+                    ${passwordErrors.oldPassword ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-[#4a6741]/20 focus:border-[#4a6741]"}`}
+                  placeholder="Enter current password"
+                />
+              </div>
+              {passwordErrors.oldPassword && <p className="text-xs text-red-500 mt-1">{passwordErrors.oldPassword}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
+              <input
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={(e) => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition
+                  ${passwordErrors.newPassword ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-[#4a6741]/20 focus:border-[#4a6741]"}`}
+                placeholder="Min. 6 characters"
+              />
+              {passwordErrors.newPassword && <p className="text-xs text-red-500 mt-1">{passwordErrors.newPassword}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm New Password</label>
+              <input
+                type="password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition
+                  ${passwordErrors.confirmPassword ? "border-red-300 focus:ring-red-200" : "border-gray-200 focus:ring-[#4a6741]/20 focus:border-[#4a6741]"}`}
+                placeholder="Repeat new password"
+              />
+              {passwordErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{passwordErrors.confirmPassword}</p>}
+            </div>
+            {passwordMessage && (
+              <p className={`text-sm font-semibold ${passwordMessage.includes("successfully") ? "text-green-600" : "text-red-600"}`}>
+                {passwordMessage}
+              </p>
+            )}
+            <div className="flex gap-2 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowChangePassword(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl font-semibold text-sm transition"
+                disabled={changingPassword}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={changingPassword}
+                className="flex-1 px-4 py-2.5 bg-[#4a6741] text-white hover:bg-[#3a5333] rounded-xl font-semibold text-sm transition disabled:opacity-60"
+              >
+                {changingPassword ? "Saving..." : "Save Password"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto pb-6 bg-gray-50">
@@ -970,8 +1085,15 @@ function ProfileView({ student, onClose }) {
         </div>
       </div>
 
-      {/* Logout */}
-      <div className="mx-4 mt-4 mb-6">
+      {/* Change Password & Logout */}
+      <div className="mx-4 mt-4 mb-6 space-y-3">
+        <button
+          onClick={() => setShowChangePassword(true)}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-[#4a6741] text-[#4a6741] hover:bg-[#f0f7ec] font-bold text-sm transition"
+        >
+          <IoLockClosedOutline className="text-lg" />
+          Change Password
+        </button>
         <button
           onClick={logout}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-red-300 text-red-500 hover:bg-red-50 font-bold text-sm transition"

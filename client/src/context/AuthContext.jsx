@@ -102,10 +102,39 @@ export function AuthProvider({ children }) {
   };
 
   // ──────────────────────────────────────────────────────
+  // CHANGE PASSWORD - admin changing their own password
+  // ──────────────────────────────────────────────────────
+  const changePassword = async (oldPassword, newPassword, confirmPassword) => {
+    try {
+      await api.patch("/auth/change-password", {
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      });
+      logout(); // Force re-authentication
+      return { success: true, message: "Password changed successfully. Please log in with your new password." };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Password change failed" };
+    }
+  };
+
+  // ──────────────────────────────────────────────────────
+  // RESET STAFF PASSWORD - admin resetting another staff member's password
+  // ──────────────────────────────────────────────────────
+  const resetStaffPassword = async (staffId) => {
+    try {
+      const { data } = await api.post(`/auth/staff/${staffId}/reset-password`);
+      return { success: true, message: data.message };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Password reset failed" };
+    }
+  };
+
+  // ──────────────────────────────────────────────────────
   // PROVIDER RETURN - ibibigay ang auth data sa lahat ng child components
   // ──────────────────────────────────────────────────────
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, changePassword, resetStaffPassword }}>
       {children}
     </AuthContext.Provider>
   );

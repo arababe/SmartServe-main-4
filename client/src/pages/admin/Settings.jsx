@@ -27,7 +27,7 @@ import { useAuth } from "../../context/AuthContext";
 
 // ─── Shared ───────────────────────────────────────────────────────────────────
 const TABS = [
-  { key: "staff",   label: "Staff Accounts",   icon: <MdPeopleOutline className="text-base" /> },
+  { key: "staff",   label: "User Accounts",    icon: <MdPeopleOutline className="text-base" /> },
   { key: "menu",    label: "Menu Management",   icon: <MdMenuBook className="text-base" /> },
   { key: "alerts",  label: "Alert Settings",    icon: <MdNotificationsNone className="text-base" /> },
   { key: "audit",   label: "Audit Log",         icon: <MdHistoryEdu className="text-base" /> },
@@ -89,7 +89,7 @@ function Modal({ onClose, children }) {
 
 // ─── Tab: Staff Accounts ──────────────────────────────────────────────────────
 function StaffTab() {
-  const { user } = useAuth();
+  const { user, resetStaffPassword } = useAuth();
   const [staff, setStaff] = useState([]);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,6 +103,9 @@ function StaffTab() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [actionLoading, setActionLoading] = useState({});
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetMessage, setResetMessage] = useState(null);
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -155,6 +158,27 @@ function StaffTab() {
       fetchStaff();
     } catch { /* */ } finally {
       setActionLoading((p) => { const n = { ...p }; delete n[id]; return n; });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetTarget) return;
+    setResettingPassword(true);
+    try {
+      const result = await resetStaffPassword(resetTarget._id);
+      if (result.success) {
+        setResetMessage({ type: "success", text: result.message });
+        setTimeout(() => {
+          setResetTarget(null);
+          setResetMessage(null);
+        }, 3000);
+      } else {
+        setResetMessage({ type: "error", text: result.message });
+      }
+    } catch (err) {
+      setResetMessage({ type: "error", text: "Failed to reset password" });
+    } finally {
+      setResettingPassword(false);
     }
   };
 
