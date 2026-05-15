@@ -165,6 +165,10 @@ function App() {
             />
             <Route
               path="/dashboard/settings"
+              element={<Navigate to="/dashboard/settings/staff" replace />}
+            />
+            <Route
+              path="/dashboard/settings/:section"
               element={
                 <ProtectedRoute>
                   <Settings />

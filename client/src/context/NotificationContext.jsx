@@ -52,6 +52,20 @@ export function NotificationProvider({ role, token, id, onNotification, children
   // Para di mag-re-toast kapag nagpo-poll
   const latestIdRef = useRef(null);
 
+  // Track ng notification IDs that have already shown a toast
+  // This prevents duplicates when a notification arrives via socket and polling
+  const displayedIdsRef = useRef(new Set());
+
+  const showToast = (notif) => {
+    if (!notif || displayedIdsRef.current.has(notif._id)) return;
+    displayedIdsRef.current.add(notif._id);
+    toast(notif.body, {
+      icon: role === "admin" ? "🔔" : "✨",
+      duration: 4000,
+      style: { fontSize: "13px", maxWidth: "320px" },
+    });
+  };
+
   // In local dev, connect to the same origin so Vite proxies the socket to the backend.
   // In production (Vercel serverless), socket.io is unavailable — skip entirely unless
   // an explicit VITE_SOCKET_URL is configured.
@@ -160,7 +174,7 @@ export function NotificationProvider({ role, token, id, onNotification, children
 
     if (!SOCKET_URL) {
       // Vercel serverless: poll every 8 seconds for new notifications
-      const interval = setInterval(fetchNotifications, 8000);
+      const interval = setInterval(fetchNotifications, 4000);
       return () => clearInterval(interval);
     }
 
@@ -189,7 +203,7 @@ export function NotificationProvider({ role, token, id, onNotification, children
       setUnread((c) => c + 1); // Dagdagan ang unread count
       if (onNotification) onNotification(notif); // Call callback
 
-      // Ipakita ang toast notification
+      // Ipakita ang toast notification about to sa food. yung sa taas na
       toast(notif.body, {
         icon: role === "admin" ? "🔔" : "✨",
         duration: 4000,

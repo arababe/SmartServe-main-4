@@ -29,6 +29,7 @@ import {
   IoLeafOutline,
   IoGiftOutline as IoRewardIcon,
 } from "react-icons/io5";
+import { MdPeopleOutline, MdMenuBook, MdNotificationsNone, MdHistoryEdu } from "react-icons/md";
 
 // Import authentication context
 // This gives access to the logged-in user and logout function
@@ -230,7 +231,10 @@ const navItems = [
   { label: "Alerts", icon: <IoNotificationsOutline />, to: "/dashboard/alerts", wip: true },
   { label: "Analytics", icon: <IoBarChartOutline />, to: "/dashboard/analytics", wip: true },
   { label: "Rewards", icon: <IoGiftOutline />, to: "/dashboard/rewards" },
-  { label: "Settings", icon: <IoSettingsOutline />, to: "/dashboard/settings" },
+  { label: "Staff Accounts", icon: <MdPeopleOutline />, to: "/dashboard/settings/staff" },
+  { label: "Menu Management", icon: <MdMenuBook />, to: "/dashboard/settings/menu" },
+  { label: "Alert Settings", icon: <MdNotificationsNone />, to: "/dashboard/settings/alerts" },
+  { label: "Audit Log", icon: <MdHistoryEdu />, to: "/dashboard/settings/audit" },
 ];
 
 

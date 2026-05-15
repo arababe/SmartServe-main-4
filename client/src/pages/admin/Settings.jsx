@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useParams, Navigate } from "react-router-dom";
 import {
   IoPersonOutline,
   IoMailOutline,
@@ -892,29 +893,16 @@ function AuditLogTab() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("staff");
+  const { section } = useParams();
+  const activeTab = section || "staff";
+
+  if (!TABS.some((t) => t.key === activeTab)) {
+    return <Navigate to="/dashboard/settings/staff" replace />;
+  }
 
   return (
     <AdminLayout breadcrumb="Settings">
       <h1 className="text-2xl font-bold text-[#4a6741] mb-5">Settings</h1>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-gray-200 -mx-0">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 -mb-px transition
-              ${activeTab === t.key
-                ? "bg-[#4a6741] text-white border-[#4a6741]"
-                : "bg-white text-gray-500 border-transparent hover:text-[#4a6741] hover:border-[#4a6741]/30"
-              }`}
-          >
-            {t.icon}
-            {t.label}
-          </button>
-        ))}
-      </div>
 
       {activeTab === "staff" && <StaffTab />}
       {activeTab === "menu"  && <MenuTab />}
